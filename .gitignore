@@ -1,0 +1,31 @@
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Dependencies and generated output
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.op.example
+*.pem
+*.key
+
+# Local capture and diagnostic data
+*.insv
+*.insp
+apps/api/data/uploads/*
+apps/api/data/diagnostics/*
+!apps/api/data/uploads/.gitkeep
+!apps/api/data/diagnostics/.gitkeep
+
+# Logs and editor settings
+*.log
+.idea/
+.vscode/
