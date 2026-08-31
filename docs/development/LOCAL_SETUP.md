@@ -2,6 +2,8 @@
 
 This repository currently contains folder placeholders and documentation only. It is not yet a runnable application.
 
+The planned tools and package responsibilities are listed in [DEPENDENCIES.md](DEPENDENCIES.md). Docker is optional during the initial UI stage; see the [Docker setup plan](../deployment/DOCKER_SETUP.md).
+
 ## Planned local architecture
 
 ```text
@@ -34,6 +36,10 @@ Mock mode should be the normal development option for UI work. It should simulat
 ### Approved integration mode
 
 Only authorised developers should enable real OpenSpace integration. The Node.js process should receive secrets temporarily from the approved internal secret manager. Secret values must not be written into repository files.
+
+### Docker mode
+
+After the Node.js service has runnable source code and dependency manifests, Docker may be used to give team members a consistent backend environment. Docker should not be introduced as a substitute for the missing application files, and it must not contain baked-in credentials.
 
 ## Planned first implementation sequence
 

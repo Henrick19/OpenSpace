@@ -21,6 +21,7 @@ packages/
   shared/              Planned types and contracts shared by web and API
 infra/
   aws/                 Future AWS infrastructure and environment notes
+docker/                Planned container structure and Docker guidance
 docs/
   architecture/        Folder and system-structure guidance
   development/         Local-development instructions
@@ -30,7 +31,9 @@ docs/
 See:
 
 - [Folder structure guide](docs/architecture/FOLDER_STRUCTURE.md)
+- [Dependency plan](docs/development/DEPENDENCIES.md)
 - [Local development plan](docs/development/LOCAL_SETUP.md)
+- [Docker setup plan](docs/deployment/DOCKER_SETUP.md)
 - [AWS migration plan](docs/deployment/AWS_MIGRATION.md)
 - [Security guidance](SECURITY.md)
 

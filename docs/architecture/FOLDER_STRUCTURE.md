@@ -36,6 +36,7 @@ packages/
     └── src/
 infra/
 └── aws/
+docker/
 docs/
 ├── architecture/
 ├── development/
@@ -81,6 +82,10 @@ This package will contain safe, non-secret data contracts shared by the frontend
 ## AWS preparation: `infra/aws`
 
 This folder is reserved for future infrastructure-as-code and AWS environment documentation. It must remain documentation-only until the AWS account, region, sponsorship, service selection and security responsibilities are confirmed.
+
+## Container preparation: `docker`
+
+This folder records the agreed Docker approach before runnable container files are introduced. The first useful container target will be the Node.js integration service. React can continue to run through Vite during local development and can later be built as static files for AWS Amplify Hosting.
 
 ## Documentation folders
 

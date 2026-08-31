@@ -18,6 +18,8 @@ The static React build may be hosted with AWS Amplify Hosting. Amazon Cognito ma
 
 The Node.js integration should run on a service suitable for long-running, large-file streaming. The final hosting service remains an AWS architecture decision.
 
+The local Node.js Docker image can later provide the starting point for a managed container deployment, subject to AWS review. See [Docker setup plan](DOCKER_SETUP.md).
+
 Do not send multi-gigabyte INSV files through AWS Lambda or API Gateway. Their request and runtime limits are not suitable for the main capture upload path.
 
 ## Possible AWS responsibilities
