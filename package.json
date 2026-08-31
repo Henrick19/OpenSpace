@@ -8,6 +8,12 @@
     "packages/*"
   ],
   "scripts": {
+    "predev": "npm run build --workspace @openspace/shared",
+    "dev": "concurrently -n web,api -c cyan,green \"npm run dev --workspace @openspace/web\" \"npm run dev --workspace @openspace/api\"",
+    "build": "npm run build --workspace @openspace/shared && npm run build --workspace @openspace/api && npm run build --workspace @openspace/web",
+    "typecheck": "npm run build --workspace @openspace/shared && npm run typecheck --workspace @openspace/api && npm run typecheck --workspace @openspace/web",
+    "lint": "npm run lint --workspace @openspace/api && npm run lint --workspace @openspace/web",
+    "check": "npm run check:manifests && npm run typecheck && npm run lint && npm run build",
     "workspaces:list": "npm query .workspace",
     "check:manifests": "npm ls --workspaces --depth=0"
   },

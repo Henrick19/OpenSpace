@@ -1,6 +1,6 @@
 # Local development plan
 
-The repository now has an npm workspace and dependency manifests. It does not yet have runnable application source code.
+The repository now has an npm workspace, a minimal Vite React frontend, a minimal Node.js TypeScript service and a shared contract package.
 
 The planned tools and package responsibilities are listed in [DEPENDENCIES.md](DEPENDENCIES.md). Docker is optional during the initial UI stage; see the [Docker setup plan](../deployment/DOCKER_SETUP.md).
 
@@ -34,10 +34,12 @@ From the repository root:
 ```bash
 nvm use
 npm install
-npm run check:manifests
+npm run dev
 ```
 
 `npm install` reads the root workspace configuration and installs dependencies for all three packages. The generated root lockfile must remain committed so every team member receives the same resolved dependency versions.
+
+Open `http://localhost:5173`. A connected status confirms that Vite successfully proxied the browser health request to the local Node.js service.
 
 ## Planned development modes
 
@@ -56,9 +58,9 @@ After the Node.js service has runnable source code and dependency manifests, Doc
 ## Planned first implementation sequence
 
 1. Initialise the workspace configuration without adding credentials. **Completed.**
-2. Initialise the Vite React frontend in `apps/web`.
-3. Initialise the Node.js TypeScript service in `apps/api`.
-4. Define safe shared contracts in `packages/shared`.
+2. Initialise the Vite React frontend in `apps/web`. **Completed.**
+3. Initialise the Node.js TypeScript service in `apps/api`. **Completed.**
+4. Define safe shared contracts in `packages/shared`. **Started with the health-response contract.**
 5. Implement mock endpoints and build the MVP screens.
 6. Add the approved OpenSpace adapter behind the Node.js service.
 7. Add automated checks before enabling any live upload test.
@@ -74,4 +76,10 @@ Vite can later proxy browser requests beginning with `/api` to the local Node.js
 
 ## Validation expectations
 
-When code is introduced, the repository should provide one documented validation command that runs formatting or linting, type checks, tests and production builds. No live OpenSpace request should run as part of the normal automated test suite.
+Use the root validation command:
+
+```bash
+npm run check
+```
+
+It verifies the workspace manifests, checks TypeScript, runs the available lint checks and creates production builds. No live OpenSpace request runs during validation.

@@ -3,7 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Planned Vite and React frontend for the PSB dashboard",
+  "description": "Vite and React frontend for the PSB dashboard",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "oxlint src",
+    "preview": "vite preview"
+  },
   "dependencies": {
     "@openspace/shared": "*",
     "react": "^19.2.8",
