@@ -1,6 +1,6 @@
 # Local development plan
 
-This repository currently contains folder placeholders and documentation only. It is not yet a runnable application.
+The repository now has an npm workspace and dependency manifests. It does not yet have runnable application source code.
 
 The planned tools and package responsibilities are listed in [DEPENDENCIES.md](DEPENDENCIES.md). Docker is optional during the initial UI stage; see the [Docker setup plan](../deployment/DOCKER_SETUP.md).
 
@@ -27,6 +27,18 @@ The team should confirm:
 5. the initial mock-data contracts shared between the frontend and service;
 6. the first MVP screens and ownership assignments.
 
+## Install the workspace
+
+From the repository root:
+
+```bash
+nvm use
+npm install
+npm run check:manifests
+```
+
+`npm install` reads the root workspace configuration and installs dependencies for all three packages. The generated root lockfile must remain committed so every team member receives the same resolved dependency versions.
+
 ## Planned development modes
 
 ### Mock mode
@@ -43,7 +55,7 @@ After the Node.js service has runnable source code and dependency manifests, Doc
 
 ## Planned first implementation sequence
 
-1. Initialise the workspace configuration without adding credentials.
+1. Initialise the workspace configuration without adding credentials. **Completed.**
 2. Initialise the Vite React frontend in `apps/web`.
 3. Initialise the Node.js TypeScript service in `apps/api`.
 4. Define safe shared contracts in `packages/shared`.

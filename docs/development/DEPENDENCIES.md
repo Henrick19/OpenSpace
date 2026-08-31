@@ -1,6 +1,19 @@
-# Planned dependencies
+# Workspace dependencies
 
-No packages are installed in the repository yet because the current milestone contains no application code. Installing dependencies now would create manifests and a lockfile for an application that does not yet exist. The following list records the intended dependency baseline for team review.
+The root npm workspace and package manifests were introduced before application source code. One root lockfile records compatible dependency versions for the frontend, API and shared package.
+
+## Install and verify
+
+From the repository root:
+
+```bash
+nvm use
+npm install
+npm run workspaces:list
+npm run check:manifests
+```
+
+Do not run separate `npm install` commands inside `apps/web`, `apps/api` or `packages/shared`. npm workspaces link `@openspace/shared` to the local shared package automatically.
 
 ## Developer tools
 
@@ -57,15 +70,15 @@ Planned responsibility: coordinate commands across the frontend, API and shared 
 
 - `typescript`: build safe interfaces and validation contracts shared by the web and API packages.
 
-## When dependencies should be added
+## Dependency maintenance
 
-Dependencies should be installed only when the team begins the corresponding implementation. At that time:
+When implementation continues:
 
-1. create the root npm workspace and package manifests;
-2. use compatible, reviewed package versions;
-3. commit the generated lockfile;
-4. run a vulnerability review;
-5. remove any dependency that is not actually used;
-6. document the standard install and validation commands.
+1. change dependencies through the appropriate workspace command;
+2. review the resulting manifest and root lockfile together;
+3. run a vulnerability review;
+4. remove packages that are not actually used;
+5. avoid installing application packages globally;
+6. keep Node.js and npm requirements aligned with `.nvmrc` and the root manifest.
 
 Docker itself is a developer tool, not an npm dependency.

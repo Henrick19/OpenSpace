@@ -1,0 +1,22 @@
+{
+  "name": "openspace-psb-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PSB OpenSpace combined dashboard workspace",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "workspaces:list": "npm query .workspace",
+    "check:manifests": "npm ls --workspaces --depth=0"
+  },
+  "engines": {
+    "node": ">=22.12.0 <23",
+    "npm": ">=10 <11"
+  },
+  "packageManager": "npm@10.9.4",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

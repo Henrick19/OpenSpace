@@ -9,7 +9,19 @@ This repository is the shared team workspace for the PSB OpenSpace project. The 
 
 ## Current repository stage
 
-The application code has **not** been added yet. This version establishes the agreed folder structure and team guidance only. Team members should review and confirm the structure before React, Node.js or AWS implementation begins.
+The npm workspace and dependency manifests are now established. Application source code has **not** been added yet. The next implementation stage is to initialise the Vite React frontend and the Node.js TypeScript service inside their existing workspaces.
+
+## Install workspace dependencies
+
+Use Node.js 22 and npm 10:
+
+```bash
+nvm use
+npm install
+npm run check:manifests
+```
+
+The repository uses one root `package-lock.json` for all workspaces. Do not run separate installs inside each application folder.
 
 ## Planned structure
 
