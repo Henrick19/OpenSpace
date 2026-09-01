@@ -74,9 +74,9 @@ Read the [folder structure guide](docs/architecture/FOLDER_STRUCTURE.md), [local
 
 Never commit OpenSpace credentials, tokens, real `.env` files, secret-manager links, INSV files or the local SQLite database. Frontend-only developers can work in mock mode without credentials.
 
-## Progress display
+## Planned progress display
 
-The progress screen separates two different operations:
+When its page owner implements the progress screen, it should separate two different operations:
 
 1. **File transfer:** a real 0–100% value based on transferred bytes.
 2. **OpenSpace processing:** an indeterminate state because the current integration does not provide a reliable processing percentage.

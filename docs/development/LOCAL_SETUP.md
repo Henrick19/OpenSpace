@@ -60,6 +60,6 @@ These endpoints currently operate locally and do not make a live OpenSpace reque
 
 ## Understanding progress
 
-The progress page displays byte-transfer progress from 0–100%. After the transfer is accepted, the OpenSpace cloud-processing phase uses a spinner and stage label rather than an invented percentage. The page refreshes the local capture record every 15 seconds; the future OpenSpace adapter will update that record after polling a supported status endpoint.
+When implemented by its page owner, the progress page should display byte-transfer progress from 0–100%. After the transfer is accepted, the OpenSpace cloud-processing phase should use a spinner and stage label rather than an invented percentage. The future OpenSpace adapter will update the local capture record after polling a supported status endpoint.
 
 Until OpenSpace documents a definitive completion field or viewer URL, disappearance from `pendingCaptures` must be treated as requiring confirmation rather than automatically becoming `ready`.

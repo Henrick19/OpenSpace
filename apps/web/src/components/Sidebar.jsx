@@ -13,6 +13,7 @@ export function Sidebar() {
         {links.map((link) => (
           <NavLink
             className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
+            end
             key={link.to}
             to={link.to}
           >
