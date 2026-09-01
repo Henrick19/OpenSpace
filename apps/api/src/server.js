@@ -1,16 +1,14 @@
 import "dotenv/config";
 
 import { createApp } from "./app.js";
+import { loadEnvironment } from "./config/environment.js";
 import { createDatabase } from "./database/connection.js";
 
-const port = Number.parseInt(process.env.PORT ?? "8787", 10);
-if (!Number.isInteger(port) || port < 1 || port > 65_535) {
-  throw new Error("PORT must be a valid TCP port number.");
-}
-
-const database = createDatabase();
-const server = createApp({ database }).listen(port, "127.0.0.1", () => {
-  console.log(`OpenSpace API service listening on http://localhost:${port}`);
+const environment = loadEnvironment();
+const database = createDatabase(environment.databasePath);
+const server = createApp({ database, webOrigin: environment.webOrigin }).listen(environment.port, "127.0.0.1", () => {
+  console.log(`OpenSpace API service listening on http://localhost:${environment.port}`);
+  console.log(`OpenSpace integration mode: ${environment.openSpace.mode}`);
 });
 
 function shutDown(signal) {

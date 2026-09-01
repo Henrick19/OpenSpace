@@ -24,10 +24,13 @@ Use Node.js 22 and npm 10. From the repository root:
 ```bash
 nvm use
 npm install
+cp apps/api/.env.example apps/api/.env
 npm run dev
 ```
 
 Open `http://localhost:5173`. Vite forwards `/api` requests to the local service at `http://localhost:8787`. SQLite is created automatically at `apps/api/data/database/openspace.sqlite`; it is ignored by Git.
+
+The actual `apps/api/.env` file is local and ignored by Git. New developers leave it in mock mode. Only an authorised backend integration developer may add the real OpenSpace client ID and secret. Never add secrets to a `VITE_` variable because Vite exposes those values to browser code.
 
 Before committing:
 
@@ -70,3 +73,12 @@ Read the [folder structure guide](docs/architecture/FOLDER_STRUCTURE.md), [local
 ## Security
 
 Never commit OpenSpace credentials, tokens, real `.env` files, secret-manager links, INSV files or the local SQLite database. Frontend-only developers can work in mock mode without credentials.
+
+## Progress display
+
+The progress screen separates two different operations:
+
+1. **File transfer:** a real 0–100% value based on transferred bytes.
+2. **OpenSpace processing:** an indeterminate state because the current integration does not provide a reliable processing percentage.
+
+The application shows `Ready` only after receiving a confirmed completion or viewer signal. A capture disappearing from a pending list is not treated as proof of success unless OpenSpace confirms that behaviour.

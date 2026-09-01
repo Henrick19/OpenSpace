@@ -7,9 +7,8 @@ import { createCaptureRouter } from "./routes/captureRoutes.js";
 import { createDashboardRouter } from "./routes/dashboardRoutes.js";
 import { createProjectRouter } from "./routes/projectRoutes.js";
 
-export function createApp({ database }) {
+export function createApp({ database, webOrigin = "http://localhost:5173" }) {
   const app = express();
-  const webOrigin = process.env.WEB_ORIGIN ?? "http://localhost:5173";
   const captureRepository = createCaptureRepository(database);
   const projectRepository = createProjectRepository(database);
 

@@ -2,9 +2,11 @@
 
 ## Secrets
 
-- Keep OpenSpace organisation credentials in the school-approved secret manager.
+- Keep OpenSpace organisation credentials in the private local backend `.env` during the MVP, then migrate them to AWS Secrets Manager for deployment.
 - Never place secrets in React code, `VITE_` variables, Git, screenshots, documentation or chat messages.
 - Do not commit real `.env` files, temporary access tokens or secret-manager share links.
+- The temporary local credential file is `apps/api/.env`. Keep it in mock mode unless you are an authorised integration developer.
+- Never use `VITE_` for OpenSpace credentials; Vite variables are included in browser code.
 - Only the planned Node.js service may read OpenSpace credentials and call authenticated OpenSpace endpoints.
 - Frontend-only developers should use mock data and should not require access to organisation credentials.
 
