@@ -1,18 +1,19 @@
 {
   "name": "@openspace/api",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Node.js integration and upload service for the PSB dashboard",
+  "description": "Node.js integration, upload and SQLite service for the PSB dashboard",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
-    "lint": "tsc -p tsconfig.json --noEmit --pretty false"
+    "dev": "node --watch src/server.js",
+    "build": "node --check src/server.js",
+    "start": "node src/server.js",
+    "lint": "oxlint src",
+    "test": "vitest run"
   },
   "dependencies": {
     "@openspace/shared": "*",
+    "better-sqlite3": "^12.6.2",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
@@ -20,14 +21,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/multer": "^2.0.0",
-    "@types/node": "^24.13.3",
-    "@types/supertest": "^6.0.3",
-    "supertest": "^7.2.2",
-    "tsx": "^4.21.0",
-    "typescript": "~6.0.2",
+    "oxlint": "^1.79.0",
     "vitest": "^4.1.0"
   }
 }

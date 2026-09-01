@@ -1,28 +1,19 @@
 {
   "name": "openspace-psb-platform",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "description": "PSB OpenSpace combined dashboard workspace",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "description": "PSB OpenSpace capture dashboard workspace",
+  "workspaces": ["apps/*", "packages/*"],
   "scripts": {
-    "predev": "npm run build --workspace @openspace/shared",
     "dev": "concurrently -n web,api -c cyan,green \"npm run dev --workspace @openspace/web\" \"npm run dev --workspace @openspace/api\"",
     "build": "npm run build --workspace @openspace/shared && npm run build --workspace @openspace/api && npm run build --workspace @openspace/web",
-    "typecheck": "npm run build --workspace @openspace/shared && npm run typecheck --workspace @openspace/api && npm run typecheck --workspace @openspace/web",
     "lint": "npm run lint --workspace @openspace/api && npm run lint --workspace @openspace/web",
-    "check": "npm run check:manifests && npm run typecheck && npm run lint && npm run build",
+    "test": "npm run test --workspace @openspace/api && npm run test --workspace @openspace/web",
+    "check": "npm run check:manifests && npm run lint && npm run test && npm run build",
     "workspaces:list": "npm query .workspace",
     "check:manifests": "npm ls --workspaces --depth=0"
   },
-  "engines": {
-    "node": ">=22.12.0 <23",
-    "npm": ">=10 <11"
-  },
+  "engines": {"node": ">=22.12.0 <23", "npm": ">=10 <11"},
   "packageManager": "npm@10.9.4",
-  "devDependencies": {
-    "concurrently": "^9.2.1"
-  }
+  "devDependencies": {"concurrently": "^9.2.1"}
 }

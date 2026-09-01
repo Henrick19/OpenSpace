@@ -1,19 +1,25 @@
-# OpenSpace — PSB Combined Dashboard
+# OpenSpace — PSB Capture Dashboard
 
-This repository is the shared team workspace for the PSB OpenSpace project. The planned application will combine:
+This repository is the shared team workspace for the first PSB OpenSpace MVP. The current implementation focuses on four screens:
 
-- OpenSpace capture upload and processing-status monitoring;
-- floor-plan selection and capture starting-point input;
-- robot and IoT telemetry;
-- later machine-learning results and AI-assisted insights.
+- dashboard;
+- new capture and verification;
+- upload/processing progress;
+- capture history.
 
-## Current repository stage
+The IoT and AI screens are outside this first implementation stage.
 
-The npm workspace, Vite React frontend and Node.js TypeScript service are now initialised. This foundation includes a local health check only; OpenSpace integration and the final dashboard features have not been added yet.
+## Technology
 
-## Install workspace dependencies
+- **Frontend:** Vite, React JavaScript and Bootstrap 5
+- **Local service:** Node.js JavaScript and Express
+- **Local database:** SQLite through `better-sqlite3`
+- **Navigation:** React Router
+- **Future integration:** OpenSpace Private API through the Node.js service only
 
-Use Node.js 22 and npm 10:
+## Run locally
+
+Use Node.js 22 and npm 10. From the repository root:
 
 ```bash
 nvm use
@@ -21,36 +27,46 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. The frontend proxies `/api` requests to the Node.js service at `http://localhost:8787`.
+Open `http://localhost:5173`. Vite forwards `/api` requests to the local service at `http://localhost:8787`. SQLite is created automatically at `apps/api/data/database/openspace.sqlite`; it is ignored by Git.
 
-The repository uses one root `package-lock.json` for all workspaces. Do not run separate installs inside each application folder. Run `npm run check` before committing implementation changes.
+Before committing:
 
-## Planned structure
+```bash
+npm run check
+```
+
+## Simple rule for page developers
+
+Page developers normally work inside `apps/web/src/pages`. Reuse `TopBar`, `Sidebar` and `AppLayout`; do not recreate them on each page.
+
+When a page needs data, call a function from `apps/web/src/services`:
+
+```text
+React page → frontend service → Node.js route → repository/OpenSpace adapter
+```
+
+Do not call OpenSpace directly from a React page and never place OpenSpace credentials in browser code.
+
+## Main folders
 
 ```text
 apps/
-  web/                 Planned Vite + React + TypeScript frontend
-  api/                 Planned Node.js integration and upload service
-packages/
-  shared/              Planned types and contracts shared by web and API
-infra/
-  aws/                 Future AWS infrastructure and environment notes
-docker/                Planned container structure and Docker guidance
-docs/
-  architecture/        Folder and system-structure guidance
-  development/         Local-development instructions
-  deployment/          Future AWS migration instructions
+  web/src/
+    components/       shared TopBar and Sidebar
+    layouts/          shared page frame
+    pages/            team-owned route screens
+    routes/           central React route definitions
+    services/         frontend API layer
+  api/src/
+    database/         SQLite connection and schema
+    repositories/     database queries
+    routes/           safe endpoints for React
+    openspace/        future private API adapter
+packages/shared/      safe shared constants
 ```
 
-See:
+Read the [folder structure guide](docs/architecture/FOLDER_STRUCTURE.md), [local setup guide](docs/development/LOCAL_SETUP.md), [database guide](docs/development/DATABASE.md) and [security guidance](SECURITY.md).
 
-- [Folder structure guide](docs/architecture/FOLDER_STRUCTURE.md)
-- [Dependency plan](docs/development/DEPENDENCIES.md)
-- [Local development plan](docs/development/LOCAL_SETUP.md)
-- [Docker setup plan](docs/deployment/DOCKER_SETUP.md)
-- [AWS migration plan](docs/deployment/AWS_MIGRATION.md)
-- [Security guidance](SECURITY.md)
+## Security
 
-## Important security rule
-
-Never commit OpenSpace credentials, access tokens, passwords, secret-manager links, real `.env` files, INSV capture files or sensitive API responses. OpenSpace credentials must eventually be used only by the server-side integration service, never by React browser code.
+Never commit OpenSpace credentials, tokens, real `.env` files, secret-manager links, INSV files or the local SQLite database. Frontend-only developers can work in mock mode without credentials.

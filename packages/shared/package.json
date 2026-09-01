@@ -1,25 +1,11 @@
 {
   "name": "@openspace/shared",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Safe contracts shared by the PSB frontend and API service",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit --pretty false"
-  },
-  "devDependencies": {
-    "typescript": "~6.0.2"
-  }
+  "description": "Safe constants shared by the PSB frontend and API service",
+  "main": "./src/index.js",
+  "exports": {".": "./src/index.js"},
+  "files": ["src"],
+  "scripts": {"build": "node --check src/index.js"}
 }

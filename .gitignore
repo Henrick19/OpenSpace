@@ -22,8 +22,13 @@ coverage/
 *.insp
 apps/api/data/uploads/*
 apps/api/data/diagnostics/*
+apps/api/data/database/*
 !apps/api/data/uploads/.gitkeep
 !apps/api/data/diagnostics/.gitkeep
+!apps/api/data/database/.gitkeep
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 
 # Logs and editor settings
 *.log

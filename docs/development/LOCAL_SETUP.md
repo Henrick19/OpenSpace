@@ -1,35 +1,6 @@
-# Local development plan
+# Local development
 
-The repository now has an npm workspace, a minimal Vite React frontend, a minimal Node.js TypeScript service and a shared contract package.
-
-The planned tools and package responsibilities are listed in [DEPENDENCIES.md](DEPENDENCIES.md). Docker is optional during the initial UI stage; see the [Docker setup plan](../deployment/DOCKER_SETUP.md).
-
-## Planned local architecture
-
-```text
-React browser application
-        ↓ safe local requests
-Node.js integration and upload service
-        ↓ authenticated server-side requests
-OpenSpace private API
-```
-
-The React application must not receive the OpenSpace client secret, machine-user password or access token.
-
-## Before implementation starts
-
-The team should confirm:
-
-1. the frontend framework: Vite + React + TypeScript;
-2. the Node.js version and package-management approach;
-3. the approved OpenSpace project/site configuration;
-4. which developers are authorised to use the internal secret manager;
-5. the initial mock-data contracts shared between the frontend and service;
-6. the first MVP screens and ownership assignments.
-
-## Install the workspace
-
-From the repository root:
+## Start the workspace
 
 ```bash
 nvm use
@@ -37,49 +8,49 @@ npm install
 npm run dev
 ```
 
-`npm install` reads the root workspace configuration and installs dependencies for all three packages. The generated root lockfile must remain committed so every team member receives the same resolved dependency versions.
+- React: `http://localhost:5173`
+- Node.js API: `http://localhost:8787`
+- SQLite: `apps/api/data/database/openspace.sqlite`
 
-Open `http://localhost:5173`. A connected status confirms that Vite successfully proxied the browser health request to the local Node.js service.
+SQLite and its temporary WAL files are ignored by Git. Each developer receives a separate local database.
 
-## Planned development modes
+## Development modes
 
-### Mock mode
+### Mock/local mode
 
-Mock mode should be the normal development option for UI work. It should simulate project selection, floor-sheet display, upload progress and processing status without using credentials or submitting a real capture.
+This is the default for the team. It needs no OpenSpace credential. Pages can use the local routes and SQLite database while the OpenSpace adapter is being implemented.
 
 ### Approved integration mode
 
-Only authorised developers should enable real OpenSpace integration. The Node.js process should receive secrets temporarily from the approved internal secret manager. Secret values must not be written into repository files.
+Only authorised integration developers may enable live OpenSpace calls. The Node.js process receives credentials from the approved secret manager at runtime. React must never receive them.
 
-### Docker mode
+## Working on an assigned page
 
-After the Node.js service has runnable source code and dependency manifests, Docker may be used to give team members a consistent backend environment. Docker should not be introduced as a substitute for the missing application files, and it must not contain baked-in credentials.
+1. Find the page in `apps/web/src/pages`.
+2. Reuse the common layout; do not add another top bar or sidebar.
+3. Add reusable page elements to `components` only when more than one page needs them.
+4. Request data through `apps/web/src/services`.
+5. Ask the integration owner to add a new service/route function when required.
+6. Run `npm run check` before sharing the branch.
 
-## Planned first implementation sequence
+## Current frontend routes
 
-1. Initialise the workspace configuration without adding credentials. **Completed.**
-2. Initialise the Vite React frontend in `apps/web`. **Completed.**
-3. Initialise the Node.js TypeScript service in `apps/api`. **Completed.**
-4. Define safe shared contracts in `packages/shared`. **Started with the health-response contract.**
-5. Implement mock endpoints and build the MVP screens.
-6. Add the approved OpenSpace adapter behind the Node.js service.
-7. Add automated checks before enabling any live upload test.
+| URL | Page |
+|---|---|
+| `/dashboard` | Dashboard |
+| `/captures/new` | New capture and verification |
+| `/captures/:captureId/progress` | Upload and processing progress |
+| `/captures` | Capture history |
 
-## Expected local ports
+## Local API endpoints
 
-The team may use these defaults after implementation:
+| Method and path | Purpose |
+|---|---|
+| `GET /api/health` | Local service health check |
+| `GET /api/dashboard/summary` | Dashboard capture totals |
+| `GET /api/projects` | Locally cached projects; future OpenSpace sync |
+| `GET /api/captures` | Search/filter/paginate capture history |
+| `POST /api/captures` | Create a local capture metadata record |
+| `GET /api/captures/:id` | Retrieve one capture job |
 
-- React development server: `http://localhost:5173`
-- Node.js service: `http://localhost:8787`
-
-Vite can later proxy browser requests beginning with `/api` to the local Node.js service.
-
-## Validation expectations
-
-Use the root validation command:
-
-```bash
-npm run check
-```
-
-It verifies the workspace manifests, checks TypeScript, runs the available lint checks and creates production builds. No live OpenSpace request runs during validation.
+These endpoints currently operate locally and do not make a live OpenSpace request.

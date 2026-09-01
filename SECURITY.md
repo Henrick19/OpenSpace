@@ -11,6 +11,7 @@
 ## Capture data
 
 - Do not commit INSV files, extracted images or API responses containing project information.
+- SQLite stores capture metadata and local file paths only. Do not store INSV file contents or credentials in the database.
 - Use local ignored directories for temporary uploads and diagnostics.
 - Confirm school and project retention rules before storing research copies in Amazon S3.
 

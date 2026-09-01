@@ -1,29 +1,26 @@
 {
   "name": "@openspace/web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Vite and React frontend for the PSB dashboard",
+  "description": "Vite, React JavaScript and Bootstrap frontend for the PSB dashboard",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "typecheck": "tsc -b --pretty false",
+    "build": "vite build",
     "lint": "oxlint src",
+    "test": "vitest run --passWithNoTests",
     "preview": "vite preview"
   },
   "dependencies": {
     "@openspace/shared": "*",
+    "bootstrap": "^5.3.8",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.13.2"
   },
   "devDependencies": {
-    "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
-    "typescript": "~6.0.2",
     "vite": "^8.2.2",
     "vitest": "^4.1.0"
   }
