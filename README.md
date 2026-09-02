@@ -5,7 +5,7 @@ This repository is the shared team workspace for the first PSB OpenSpace MVP. Th
 - dashboard;
 - new capture and verification;
 - upload/processing progress;
-- capture history.
+- upload history.
 
 The IoT and AI screens are outside this first implementation stage.
 
@@ -49,6 +49,8 @@ React page → frontend service → Node.js route → repository/OpenSpace adapt
 ```
 
 Do not call OpenSpace directly from a React page and never place OpenSpace credentials in browser code.
+
+For the upload-only MVP, use `dashboardApi.getSummary()` for the dashboard and the reusable methods in `uploadApi` for creating, listing, reading and retrying upload records. SQLite is accessed only by the Node.js repository layer.
 
 ## Main folders
 

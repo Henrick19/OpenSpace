@@ -3,14 +3,17 @@ import express from "express";
 
 import { createCaptureRepository } from "./repositories/captureRepository.js";
 import { createProjectRepository } from "./repositories/projectRepository.js";
+import { createUploadRepository } from "./repositories/uploadRepository.js";
 import { createCaptureRouter } from "./routes/captureRoutes.js";
 import { createDashboardRouter } from "./routes/dashboardRoutes.js";
 import { createProjectRouter } from "./routes/projectRoutes.js";
+import { createUploadRouter } from "./routes/uploadRoutes.js";
 
 export function createApp({ database, webOrigin = "http://localhost:5173" }) {
   const app = express();
   const captureRepository = createCaptureRepository(database);
   const projectRepository = createProjectRepository(database);
+  const uploadRepository = createUploadRepository(database);
 
   app.disable("x-powered-by");
   app.use(cors({ origin: webOrigin }));
@@ -21,7 +24,8 @@ export function createApp({ database, webOrigin = "http://localhost:5173" }) {
   });
   app.use("/api/captures", createCaptureRouter(captureRepository));
   app.use("/api/projects", createProjectRouter(projectRepository));
-  app.use("/api/dashboard", createDashboardRouter(captureRepository, projectRepository));
+  app.use("/api/uploads", createUploadRouter(uploadRepository));
+  app.use("/api/dashboard", createDashboardRouter(uploadRepository));
 
   app.use((error, _request, response, _next) => {
     console.error("Unhandled API error", error);

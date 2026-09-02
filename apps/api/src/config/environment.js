@@ -9,6 +9,7 @@ const environmentSchema = z.object({
   OPENSPACE_CLIENT_ID: z.string().trim().default(""),
   OPENSPACE_CLIENT_SECRET: z.string().trim().default(""),
   OPENSPACE_STATUS_POLL_INTERVAL_MS: z.coerce.number().int().min(5_000).default(15_000),
+  SEED_DEMO_DATA: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
 });
 
 export function loadEnvironment(source = process.env) {
@@ -27,6 +28,7 @@ export function loadEnvironment(source = process.env) {
     port: values.PORT,
     webOrigin: values.WEB_ORIGIN,
     databasePath: values.DATABASE_PATH,
+    seedDemoData: values.SEED_DEMO_DATA,
     openSpace: Object.freeze({
       mode: values.OPENSPACE_MODE,
       baseUrl: values.OPENSPACE_BASE_URL,

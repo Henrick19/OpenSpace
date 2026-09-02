@@ -22,9 +22,10 @@ export function createDatabase(databasePath = process.env.DATABASE_PATH ?? defau
   }
 
   database.exec(INITIAL_SCHEMA);
-  database
-    .prepare("INSERT OR IGNORE INTO schema_migrations (version) VALUES (?)")
-    .run(1);
+  database.exec(`
+    INSERT OR IGNORE INTO schema_migrations (version) VALUES (1);
+    INSERT OR IGNORE INTO schema_migrations (version) VALUES (2);
+  `);
 
   return database;
 }

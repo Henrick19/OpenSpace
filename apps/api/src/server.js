@@ -3,9 +3,11 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { loadEnvironment } from "./config/environment.js";
 import { createDatabase } from "./database/connection.js";
+import { seedDemoUploads } from "./database/seed.js";
 
 const environment = loadEnvironment();
 const database = createDatabase(environment.databasePath);
+if (environment.seedDemoData) seedDemoUploads(database);
 const server = createApp({ database, webOrigin: environment.webOrigin }).listen(environment.port, "127.0.0.1", () => {
   console.log(`OpenSpace API service listening on http://localhost:${environment.port}`);
   console.log(`OpenSpace integration mode: ${environment.openSpace.mode}`);
