@@ -32,8 +32,8 @@ export function seedDemoUploads(database) {
   });
 
   const failed = uploads.create({
-    siteId: "demo-cd-compass",
-    projectName: "CD Compass",
+    siteId: "demo-city-campus",
+    projectName: "City Campus",
     sheetId: "demo-level-01",
     floorName: "Level 01",
     uploadName: "Initial route trial",

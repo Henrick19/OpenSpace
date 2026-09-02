@@ -5,7 +5,9 @@ export function TopBar() {
         <span className="brand-mark" aria-hidden="true">PSB</span>
         <span className="navbar-brand mb-0 h1">OpenSpace Capture Dashboard</span>
       </div>
-      <span className="small">Singapore</span>
+      <span className="small" style={{ color: 'white' }}>
+        Singapore
+      </span>
     </header>
   );
 }
