@@ -20,24 +20,6 @@ Cached OpenSpace project summaries: site ID, project name, region, activity stat
 
 Floor/sheet summaries: sheet ID, site ID, display name/order, floor-plan image ID, dimensions, deletion status and last sync time.
 
-### `captures`
-
-One row for each capture started through the PSB dashboard. It stores:
-
-- local ID and later OpenSpace capture ID;
-- project/site and sheet/floor snapshots;
-- capture and file names, size, local path and optional checksum;
-- confirmed capture time and starting-point coordinates;
-- status and real upload percentage;
-- upload, submission and processing timestamps;
-- viewer URL and any error message.
-
-Allowed statuses are `draft`, `validating`, `importing`, `saved_locally`, `waiting_for_internet`, `uploading`, `submitted`, `processing`, `ready` and `failed`.
-
-### `capture_events`
-
-An audit-style timeline for each job. Every row records a capture ID, stage, optional message/progress and timestamp.
-
 ### `schema_migrations`
 
 Records which database schema versions have been applied so later changes can be introduced safely.

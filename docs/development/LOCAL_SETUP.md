@@ -50,16 +50,21 @@ Only authorised integration developers may enable live OpenSpace calls. During t
 | Method and path | Purpose |
 |---|---|
 | `GET /api/health` | Local service health check |
-| `GET /api/dashboard/summary` | Dashboard capture totals |
+| `GET /api/dashboard/summary` | Upload totals and recent uploads |
 | `GET /api/projects` | Locally cached projects; future OpenSpace sync |
-| `GET /api/captures` | Search/filter/paginate capture history |
-| `POST /api/captures` | Create a local capture metadata record |
-| `GET /api/captures/:id` | Retrieve one capture job |
+| `GET /api/uploads` | Search, filter and paginate upload history |
+| `GET /api/uploads/recent` | Retrieve recent uploads |
+| `POST /api/uploads` | Create a local upload metadata record |
+| `GET /api/uploads/:id` | Retrieve one upload record |
+| `PATCH /api/uploads/:id/progress` | Update byte-transfer progress |
+| `POST /api/uploads/:id/retry` | Retry a failed or cancelled upload |
+| `POST /api/uploads/:id/complete` | Mark an upload completed |
+| `POST /api/uploads/:id/fail` | Mark an upload failed |
 
 These endpoints currently operate locally and do not make a live OpenSpace request.
 
 ## Understanding progress
 
-When implemented by its page owner, the progress page should display byte-transfer progress from 0–100%. After the transfer is accepted, the OpenSpace cloud-processing phase should use a spinner and stage label rather than an invented percentage. The future OpenSpace adapter will update the local capture record after polling a supported status endpoint.
+When implemented by its page owner, the progress page should display byte-transfer progress from 0–100%. After the transfer is accepted, the interface hands the user to OpenSpace Singapore instead of inventing a cloud-processing percentage. The future OpenSpace adapter will update the local upload record when a supported completion or viewer signal is available.
 
-Until OpenSpace documents a definitive completion field or viewer URL, disappearance from `pendingCaptures` must be treated as requiring confirmation rather than automatically becoming `ready`.
+Until OpenSpace documents a definitive completion field or viewer URL, disappearance from `pendingCaptures` must be treated as requiring confirmation rather than automatically becoming completed.

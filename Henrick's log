@@ -80,6 +80,13 @@ credentials, passwords, client secrets or other private information in this log.
 - Verified the changes with linting, seven API tests and a full production build.
 - Committed and pushed the SQLite upload-data layer to the main GitHub branch in
   commit 7056880.
+- Removed obsolete generated API distribution files left by the previous
+  TypeScript setup.
+- Removed the legacy capture repository, capture routes, capture tables and
+  duplicated capture-status constants after confirming the MVP now uses the
+  upload data layer.
+- Updated the database and local-development guides to describe only the current
+  upload API endpoints.
 
 Current next steps
 ------------------
