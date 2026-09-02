@@ -87,6 +87,11 @@ credentials, passwords, client secrets or other private information in this log.
   upload data layer.
 - Updated the database and local-development guides to describe only the current
   upload API endpoints.
+- Removed obsolete frontend TypeScript/build leftovers and the legacy
+  `captureApi` service that called the retired capture endpoints.
+- Removed redundant empty placeholder files from populated frontend folders.
+- Updated the application folder guide to reference the current `uploadApi`
+  service.
 
 Current next steps
 ------------------

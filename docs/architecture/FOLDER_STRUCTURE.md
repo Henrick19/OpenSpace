@@ -6,7 +6,6 @@
 src/
 ├── assets/       images and imported visual files
 ├── components/   small reusable UI, including TopBar and Sidebar
-├── features/     future larger feature modules
 ├── hooks/        reusable React behaviour
 ├── layouts/      AppLayout, which joins common navigation and page content
 ├── pages/        Dashboard, New Capture, Progress and History screens
@@ -15,7 +14,7 @@ src/
 └── styles/       global CSS placed after Bootstrap
 ```
 
-A page should focus on presentation and user interaction. It should call functions such as `captureApi.list()` instead of writing `fetch()` calls throughout the component.
+A page should focus on presentation and user interaction. It should call functions such as `uploadApi.list()` instead of writing `fetch()` calls throughout the component.
 
 ## Local service: `apps/api`
 
