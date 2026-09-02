@@ -1,0 +1,91 @@
+Henrick's OpenSpace Project Log
+===============================
+
+Purpose
+-------
+This file records the main work I completed for the OpenSpace project. Add a new
+dated entry after each development or documentation session. Do not include API
+credentials, passwords, client secrets or other private information in this log.
+
+2026-08-07
+----------
+- Created the initial OpenSpace GitHub repository.
+
+2026-08-10
+----------
+- Added the initial research evaluation.
+- Added the first wireframe designs for the project.
+
+2026-08-11
+----------
+- Added meeting-minutes documentation.
+- Added the initial frontend folder.
+- Added the monthly project Gantt chart.
+
+2026-08-13
+----------
+- Updated the meeting minutes following the project discussion.
+
+2026-08-14
+----------
+- Added the team GitHub workflow guide.
+- Added the minimized MVP wireframes (version 0.2).
+
+2026-08-30
+----------
+- Reorganised and updated the project documentation folders.
+
+2026-08-31
+----------
+- Designed the initial application folder structure.
+- Added local-development and future AWS-deployment setup guides.
+- Documented project dependencies and the planned Docker setup.
+- Created the npm workspace and dependency manifests.
+- Initialised the Vite React frontend and Node.js/Express service.
+
+2026-09-01
+----------
+- Confirmed React JavaScript and Bootstrap for the frontend.
+- Confirmed Node.js/Express for the local API service.
+- Added the initial SQLite foundation using better-sqlite3.
+- Added local environment configuration using an ignored .env file.
+- Documented the separate file-transfer progress and OpenSpace handoff states.
+- Added shared TopBar, Sidebar and routing structure.
+- Kept the Dashboard, New Upload, Upload History, Upload Progress and Not Found
+  pages as simple placeholders so each assigned team member can implement their
+  own page without conflicting with other members' work.
+- Fixed the sidebar active-state routing behaviour.
+
+2026-09-02
+----------
+- Updated the latest PSB Capture Dashboard MVP v0.4 wireframes to focus only on
+  upload activity.
+- Changed the dashboard metrics to Total Uploads, In Progress, Completed and
+  Failed.
+- Replaced project cards with a Recent Uploads table.
+- Changed Capture History terminology to Upload History.
+- Added a FigJam data-flow diagram explaining how upload metadata and status are
+  stored in SQLite and retrieved by the dashboard and history pages.
+- Added the uploads SQLite table. The table stores upload metadata and status;
+  it does not store the large INSV file.
+- Added reusable database methods for creating, finding, listing, filtering and
+  paginating upload records.
+- Added methods for updating upload progress, marking an upload completed or
+  failed, and retrying a failed or cancelled upload.
+- Added dashboard summary and recent-upload queries.
+- Added REST endpoints under /api/uploads and a frontend uploadApi service so
+  page developers do not need to write SQL or call SQLite directly.
+- Added three optional local demo records: uploading, completed and failed.
+- Added automated repository tests and updated the database documentation.
+- Verified the changes with linting, seven API tests and a full production build.
+- Committed and pushed the SQLite upload-data layer to the main GitHub branch in
+  commit 7056880.
+
+Current next steps
+------------------
+- Connect the Dashboard page to dashboardApi.getSummary().
+- Connect the Upload History page to uploadApi.list().
+- Connect the New Upload form to uploadApi.create().
+- Connect the Retry action to uploadApi.retry().
+- Integrate the real OpenSpace upload workflow after the remaining API details
+  are confirmed.
