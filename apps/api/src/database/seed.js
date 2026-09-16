@@ -1,3 +1,5 @@
+// Approved PSB projects are maintained locally because the private integration
+// does not provide a supported endpoint for listing an organisation's projects.
 const PROJECTS = [
   {
     siteId: "3veiB-IWQeueTCR09xrR6g",
@@ -37,33 +39,45 @@ const SHEETS = [
   },
 ];
 
-// inserting the project seed data into the database
+/**
+ * Inserts or refreshes the known project and sheet display data.
+ * Existing upload history is not changed.
+ *
+ * @param {import("better-sqlite3").Database} database
+ */
 export function seedProjectCatalog(database) {
+  const projectHasLegacySync = database.prepare("PRAGMA table_info(projects)")
+    .all().some((column) => column.name === "synced_at");
+  const sheetHasLegacySync = database.prepare("PRAGMA table_info(sheets)")
+    .all().some((column) => column.name === "synced_at");
+
   const insertProject = database.prepare(`
-    INSERT INTO projects (site_id, name, address, status, created_date)
-    VALUES (@siteId, @name, @address, @status, @createdDate)
-    ON CONFLICT(site_id) DO UPDATE SET  
+    INSERT INTO projects (site_id, name, address, status, created_date${projectHasLegacySync ? ", synced_at" : ""})
+    VALUES (@siteId, @name, @address, @status, @createdDate${projectHasLegacySync ? ", CURRENT_TIMESTAMP" : ""})
+    ON CONFLICT(site_id) DO UPDATE SET
       name = excluded.name,
       address = excluded.address,
       status = excluded.status,
+      ${projectHasLegacySync ? "synced_at = CURRENT_TIMESTAMP," : ""}
       updated_at = CURRENT_TIMESTAMP
   `);
   const insertSheet = database.prepare(`
     INSERT INTO sheets (
       sheet_id, site_id, name, created_date, display_order,
-      default_start_x, default_start_y, default_start_z
+      default_start_x, default_start_y, default_start_z${sheetHasLegacySync ? ", synced_at" : ""}
     ) VALUES (
       @sheetId, @siteId, @name, @createdDate, @displayOrder, 0, 0, 1.5
+      ${sheetHasLegacySync ? ", CURRENT_TIMESTAMP" : ""}
     )
     ON CONFLICT(sheet_id) DO UPDATE SET
       name = excluded.name,
       created_date = excluded.created_date,
       display_order = excluded.display_order,
+      ${sheetHasLegacySync ? "synced_at = CURRENT_TIMESTAMP," : ""}
       updated_at = CURRENT_TIMESTAMP
   `);
 
-  // creates a database transaction to insert the project and sheet seed data into the database
-  // transactions treat all these databse operations as one operation, so if any of them fail, the entire transaction will be rolled back and no changes will be made to the database
+  // Use one transaction so projects and their sheets are updated together.
   const seed = database.transaction(() => {
     for (const project of PROJECTS) insertProject.run({ ...project, createdDate: null });
     for (const sheet of SHEETS) insertSheet.run(sheet);

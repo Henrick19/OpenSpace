@@ -3,6 +3,7 @@ import { Outlet } from "react-router-dom";
 import { Sidebar } from "../components/Sidebar.jsx";
 import { TopBar } from "../components/TopBar.jsx";
 
+/** Shared application shell; Outlet renders the currently matched page. */
 export function AppLayout() {
   return (
     <div className="app-shell">
