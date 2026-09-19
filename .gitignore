@@ -1,36 +1,13 @@
-# Operating-system files
-.DS_Store
-Thumbs.db
-
-# Dependencies and generated output
 node_modules/
 dist/
-build/
-coverage/
-*.tsbuildinfo
-
-# Local environment and credentials
+.DS_Store
+*.log
 .env
 .env.*
 !.env.example
-!.env.op.example
-*.pem
-*.key
-
-# Local capture and diagnostic data
-*.insv
-*.insp
+apps/api/data/database/*.sqlite
+apps/api/data/database/*.sqlite-*
 apps/api/data/uploads/*
-apps/api/data/diagnostics/*
-apps/api/data/database/*
 !apps/api/data/uploads/.gitkeep
+apps/api/data/diagnostics/*
 !apps/api/data/diagnostics/.gitkeep
-!apps/api/data/database/.gitkeep
-*.sqlite
-*.sqlite-shm
-*.sqlite-wal
-
-# Logs and editor settings
-*.log
-.idea/
-.vscode/

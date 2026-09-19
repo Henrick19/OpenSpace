@@ -3,40 +3,26 @@ import path from "node:path";
 
 import Database from "better-sqlite3";
 
+import { migrateDatabase } from "./migrations.js";
 import { INITIAL_SCHEMA } from "./schema.js";
 import { seedProjectCatalog } from "./seed.js";
 
+/**
+ * Opens SQLite, enables reliability settings, creates the schema and seeds the
+ * PSB-managed project catalogue.
+ *
+ * @param {string} databasePath Absolute path or ":memory:" for automated tests.
+ * @returns {import("better-sqlite3").Database}
+ */
 export function createDatabase(databasePath) {
-
-  // If we're using a real .db file,
-  // make sure its parent folder exists.
-  if (databasePath !== ":memory:") {
-    fs.mkdirSync(
-      path.dirname(databasePath),
-      { recursive: true }
-    );
-  }
-
-  // Open/create the SQLite database.
+  if (databasePath !== ":memory:") fs.mkdirSync(path.dirname(databasePath), { recursive: true });
   const database = new Database(databasePath);
-
-  // Enforce foreign key relationships.
+  // Foreign keys protect relationships; WAL improves normal local concurrency.
   database.pragma("foreign_keys = ON");
-
-  // Wait up to 5 seconds if SQLite is temporarily locked.
   database.pragma("busy_timeout = 5000");
-
-  // Improve read/write concurrency for file databases.
-  if (databasePath !== ":memory:") {
-    database.pragma("journal_mode = WAL");
-  }
-
-  // Create the database tables/indexes/etc.
+  if (databasePath !== ":memory:") database.pragma("journal_mode = WAL");
   database.exec(INITIAL_SCHEMA);
-
-  // Insert or update the predefined projects and sheets.
+  migrateDatabase(database);
   seedProjectCatalog(database);
-
-  // Give the database connection back to the application.
   return database;
 }

@@ -7,6 +7,7 @@ import { NewCapturePage } from "../pages/NewCapturePage.jsx";
 import { NotFoundPage } from "../pages/NotFoundPage.jsx";
 import { UploadProgressPage } from "../pages/UploadProgressPage.jsx";
 
+/** Maps browser URLs to pages inside the shared application layout. */
 export function AppRoutes() {
   return (
     <Routes>

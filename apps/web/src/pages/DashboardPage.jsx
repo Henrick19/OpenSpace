@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useNavigate } from "react-router-dom";
 function ReuseCard(card) {
   return (
@@ -6,6 +7,11 @@ function ReuseCard(card) {
       <h2>{card.value}</h2>
     </div>
   );
+=======
+/** Dashboard screen placeholder; its metrics and recent rows will use dashboardApi. */
+export function DashboardPage() {
+  return <p>This is Dashboard page.</p>;
+>>>>>>> origin/main
 }
 
 export function DashboardPage() {
