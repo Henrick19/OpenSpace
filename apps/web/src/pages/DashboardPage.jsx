@@ -1,110 +1,159 @@
-<<<<<<< HEAD
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { dashboardApi } from "../services/dashboardApi.js";
+import { useApi } from "../hooks/useApi.js";
+import { STATUS_LABELS } from "@openspace/shared";
+import {
+  LoadingState,
+  ErrorState,
+  EmptyState
+} from "../components/FeedbackState.jsx";
+
+const initialSummary = {
+  totalUploads: 0,
+  inProgress: 0,
+  completed: 0,
+  failed: 0,
+  recentUploads: []
+};
+
+
 function ReuseCard(card) {
   return (
-    <div>
-      <p>{card.title}</p>
-      <h2>{card.value}</h2>
+    <div className={`metric-card ${card.colour}`}>
+      <strong>{card.value}</strong>
+      <span>{card.title}</span>
     </div>
   );
-=======
-/** Dashboard screen placeholder; its metrics and recent rows will use dashboardApi. */
-export function DashboardPage() {
-  return <p>This is Dashboard page.</p>;
->>>>>>> origin/main
 }
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const summary = {
-    totalUploads: 12,
-    inProgress: 1,
-    completed: 10,
-    failed: 1,
-  
-    recentUploads: [
-    {
-      id: 1,
-      dateTime: "1 Sep, 19:30",
-      projectFloor: "Robotics Lab - L2",
-      fileName: "morning.insv",
-      status: "Uploading"
-    },
-    {
-      id: 2,
-      dateTime: "1 Sep, 18:10",
-      projectFloor: "Robotics Lab - L2",
-      fileName: "lab-route.insv",
-      status: "Completed"
-    },
-    {
-      id: 3,
-      dateTime: "30 Aug, 16:40",
-      projectFloor: "CD Compass - L1",
-      fileName: "trial-01.insv",
-      status: "Failed"
-    }
-  ]
-};
 
+  const [retryCount, setRetryCount] = useState(0);
+  const loadSummary = useCallback(
+    () => dashboardApi.getSummary(),
+    [retryCount]
+  );
+
+  const apiState = useApi(loadSummary, initialSummary);
+  const summary = apiState.data;
+
+  if (apiState.loading) {
+    return <LoadingState message="Loading dashboard..." />;
+  }
+
+  if (apiState.error) {
+    return (
+      <ErrorState
+        message={`Error loading dashboard: ${apiState.error}`}
+        onRetry={() => setRetryCount((count) => count + 1)}
+      />
+    );
+  }
   return (
-    <div>
-      <h1>Dashboard</h1>
-      <p>Upload activity from the local SQLite database</p>
-      
-      <button onClick={() => navigate("/captures/new")}>
-        + New Upload
-      </button>
+    <div className="content-width">
 
-      <ReuseCard
-        title="Total Uploads"
-        value={summary.totalUploads}
-      />
+      <div className="page-heading">
+        <div>
+          <h1>Dashboard</h1>
 
-      <ReuseCard
-        title="In Progress"
-        value={summary.inProgress}
-      />
+          <p>
+            Upload activity from the local SQLite database
+          </p>
+        </div>
 
-      <ReuseCard
-        title="Completed"
-        value={summary.completed}
-      />
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => navigate("/captures/new")}
+        >
+          + New Upload
+        </button>
+      </div>
 
-      <ReuseCard
-        title="Failed"
-        value={summary.failed}
-      />
+      <div className="metric-grid">
+        <ReuseCard
+          title="Total Uploads"
+          value={summary.totalUploads}
+          colour="metric-blue"
+        />
 
-      <h2>Recent Uploads</h2>
+        <ReuseCard
+          title="In Progress"
+          value={summary.inProgress}
+          colour="metric-amber"
+        />
 
-      <table>
-        <thead>
-          <tr>
-            <th>Date / Time</th>
-            <th>Project / Floor</th>
-            <th>File</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
+        <ReuseCard
+          title="Completed"
+          value={summary.completed}
+          colour="metric-green"
+        />
 
-        <tbody>
-          {summary.recentUploads.map((object) => (
-            <tr key={object.id}>
-              <td>{object.dateTime}</td>
-              <td>{object.projectFloor}</td>
-              <td>{object.fileName}</td>
-              <td>{object.status}</td>
-              <td>
-                {object.status === "Uploading" && <span>Details</span>}
-                {object.status === "Completed" && <span>Open OpenSpace</span>}
-                {object.status === "Failed" && <span>Retry</span>}
-            </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+        <ReuseCard
+          title="Failed"
+          value={summary.failed}
+          colour="metric-red"
+        />
+      </div>
+
+      <h2 className="h5 fw-semibold mb-3">
+        Recent Uploads
+      </h2>
+
+      {summary.recentUploads.length === 0 && (
+        <EmptyState
+          title="No recent uploads yet"
+          description="Upload a capture to see recent activity here."
+        />
+      )}
+
+      {summary.recentUploads.length > 0 && (
+        <div className="table-responsive">
+          <table className="table data-table align-middle">
+            <thead>
+              <tr>
+                <th>Date / Time</th>
+                <th>Project / Floor</th>
+                <th>File</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {summary.recentUploads.map((upload) => (
+                <tr key={upload.id}>
+                  <td>{new Date(upload.capturedAt).toLocaleString()}</td>
+
+                  <td>
+                    {upload.projectName} - {upload.floorName}
+                  </td>
+
+                  <td>{upload.fileName}</td>
+
+                  <td>
+                    <span className={`status-badge status-${upload.status}`}>
+                      {STATUS_LABELS[upload.status]}
+                    </span>
+                  </td>
+
+                  <td className="action-cell">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => navigate(`/captures/${upload.id}/progress`)}
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
