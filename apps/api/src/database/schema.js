@@ -1,4 +1,9 @@
+/**
+ * Idempotent SQLite schema for the local project catalogue and upload history.
+ * It can run at every application start without deleting existing records.
+ */
 export const INITIAL_SCHEMA = `
+  -- Projects and sheets are entered by authorised PSB staff using OpenSpace IDs.
   CREATE TABLE IF NOT EXISTS projects (
     site_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -24,6 +29,7 @@ export const INITIAL_SCHEMA = `
     FOREIGN KEY (site_id) REFERENCES projects(site_id) ON DELETE CASCADE
   );
 
+  -- Uploads record local transfer, OpenSpace processing and retry information.
   CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
     capture_id TEXT,
@@ -50,6 +56,7 @@ export const INITIAL_SCHEMA = `
     retry_count INTEGER NOT NULL DEFAULT 0 CHECK (retry_count >= 0),
     error_message TEXT,
     viewer_url TEXT,
+    pending_seen INTEGER NOT NULL DEFAULT 0 CHECK (pending_seen IN (0, 1)),
     local_file_deleted INTEGER NOT NULL DEFAULT 0 CHECK (local_file_deleted IN (0, 1)),
     upload_started_at TEXT,
     submitted_at TEXT,
@@ -60,6 +67,7 @@ export const INITIAL_SCHEMA = `
     FOREIGN KEY (sheet_id) REFERENCES sheets(sheet_id)
   );
 
+  -- Indexes support dropdown, dashboard, history and processing-status queries.
   CREATE INDEX IF NOT EXISTS idx_sheets_site ON sheets(site_id);
   CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status);
   CREATE INDEX IF NOT EXISTS idx_uploads_site ON uploads(site_id);

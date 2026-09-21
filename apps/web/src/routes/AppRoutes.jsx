@@ -9,6 +9,7 @@ import { UploadProgressPage } from "../pages/UploadProgressPage.jsx";
 import { UploadProgressPageDemo } from "../pages/UploadProgressPage.demo.jsx";
 import { UploadProgressPageDemo as UploadProgressPageFinal } from "../pages/UploadProgressPage.final.jsx";
 
+/** Maps browser URLs to pages inside the shared application layout. */
 export function AppRoutes() {
   return (
     <Routes>

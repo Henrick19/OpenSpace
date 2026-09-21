@@ -3,26 +3,25 @@ import "dotenv/config";
 import { createApp } from "./app.js";
 import { loadEnvironment } from "./config/environment.js";
 import { createDatabase } from "./database/connection.js";
-import { seedDemoUploads } from "./database/seed.js";
 
+// Application entry point: load configuration, open SQLite and wire Express.
 const environment = loadEnvironment();
 const database = createDatabase(environment.databasePath);
-if (environment.seedDemoData) seedDemoUploads(database);
-const server = createApp({ database, webOrigin: environment.webOrigin }).listen(environment.port, "127.0.0.1", () => {
-  console.log(`OpenSpace API service listening on http://localhost:${environment.port}`);
+const { app, coordinator } = createApp({ database, environment });
+
+const server = app.listen(environment.port, () => {
+  console.log(`OpenSpace local API listening on http://localhost:${environment.port}`);
   console.log(`OpenSpace integration mode: ${environment.openSpace.mode}`);
+  coordinator.resumeProcessingChecks();
 });
 
-function shutDown(signal) {
-  console.log(`${signal} received. Closing the API service.`);
-  server.close((error) => {
-    if (error) {
-      console.error("The API service could not close cleanly.", error);
-      process.exitCode = 1;
-    }
+// Close the HTTP server and database cleanly when local development stops.
+function shutdown() {
+  server.close(() => {
     database.close();
+    process.exit(0);
   });
 }
 
-process.on("SIGINT", () => shutDown("SIGINT"));
-process.on("SIGTERM", () => shutDown("SIGTERM"));
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

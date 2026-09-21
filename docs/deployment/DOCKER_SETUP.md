@@ -32,7 +32,7 @@ These runnable files are intentionally not present yet because there is no `pack
 
 The eventual Dockerfile should:
 
-1. use an approved Node.js 22 base image;
+1. use an approved Node.js 24 LTS base image;
 2. install exact versions from the committed lockfile;
 3. build the shared package and API service in a build stage;
 4. copy only production requirements into the runtime stage;

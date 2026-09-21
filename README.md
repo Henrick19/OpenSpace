@@ -19,7 +19,7 @@ The IoT and AI screens are outside this first implementation stage.
 
 ## Run locally
 
-Use Node.js 22 and npm 10. From the repository root:
+Use Node.js 24 LTS and npm 11. From the repository root:
 
 ```bash
 nvm use
@@ -29,6 +29,8 @@ npm run dev
 ```
 
 Open `http://localhost:5173`. Vite forwards `/api` requests to the local service at `http://localhost:8787`. SQLite is created automatically at `apps/api/data/database/openspace.sqlite`; it is ignored by Git.
+
+Interactive PSB backend documentation is available at `http://localhost:8787/api/docs`. The raw OpenAPI document is available at `http://localhost:8787/api/docs/openapi.json`. These pages document only PSB-owned endpoints; private OpenSpace endpoints and credentials are excluded.
 
 The actual `apps/api/.env` file is local and ignored by Git. New developers leave it in mock mode. Only an authorised backend integration developer may add the real OpenSpace client ID and secret. Never add secrets to a `VITE_` variable because Vite exposes those values to browser code.
 
@@ -66,11 +68,12 @@ apps/
     database/         SQLite connection and schema
     repositories/     database queries
     routes/           safe endpoints for React
+    openapi/          Swagger/OpenAPI documentation for PSB endpoints
     openspace/        future private API adapter
 packages/shared/      safe shared constants
 ```
 
-Read the [folder structure guide](docs/architecture/FOLDER_STRUCTURE.md), [local setup guide](docs/development/LOCAL_SETUP.md), [database guide](docs/development/DATABASE.md) and [security guidance](SECURITY.md).
+Read the [folder structure guide](docs/architecture/FOLDER_STRUCTURE.md), [local setup guide](docs/development/LOCAL_SETUP.md), [API documentation guide](docs/development/API_DOCUMENTATION.md), [database guide](docs/development/DATABASE.md) and [security guidance](SECURITY.md).
 
 ## Security
 
@@ -83,4 +86,4 @@ When its page owner implements the progress screen, it should separate two diffe
 1. **File transfer:** a real 0–100% value based on transferred bytes.
 2. **OpenSpace processing:** an indeterminate state because the current integration does not provide a reliable processing percentage.
 
-The application shows `Ready` only after receiving a confirmed completion or viewer signal. A capture disappearing from a pending list is not treated as proof of success unless OpenSpace confirms that behaviour.
+The application shows `Ready` only after the capture has first been observed in `pendingCaptures` and later disappears from that list. This avoids treating an initially unregistered capture as completed.

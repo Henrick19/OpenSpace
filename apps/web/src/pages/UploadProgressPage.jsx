@@ -12,7 +12,7 @@ const STAGES = [
 ];
 
 function formatBytes(bytes) {
-  if (bytes === undefined || bytes === null) return "—";
+  if (bytes === undefined || bytes === null) return "-";
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB"];
   let value = bytes;
@@ -105,7 +105,7 @@ export function UploadProgressPage() {
   if (isLoading) {
     return (
       <section className="page-section" aria-busy="true">
-        <p>Loading upload status…</p>
+        <p>Loading upload status...</p>
       </section>
     );
   }
@@ -144,11 +144,11 @@ export function UploadProgressPage() {
 
       <dl className="upload-summary">
         <dt>File</dt>
-        <dd>{fileName ?? "—"}</dd>
+        <dd>{fileName ?? "-"}</dd>
         <dt>Project</dt>
-        <dd>{project ?? "—"}</dd>
+        <dd>{project ?? "-"}</dd>
         <dt>Floor</dt>
-        <dd>{floor ?? "—"}</dd>
+        <dd>{floor ?? "-"}</dd>
         <dt>File size</dt>
         <dd>{formatBytes(fileSize)}</dd>
       </dl>
@@ -169,7 +169,7 @@ export function UploadProgressPage() {
         <div className="upload-error" role="alert">
           <p>Upload failed{errorMessage ? `: ${errorMessage}` : "."}</p>
           <button type="button" onClick={handleRetry} disabled={isRetrying}>
-            {isRetrying ? "Retrying…" : "Retry"}
+            {isRetrying ? "Retrying..." : "Retry"}
           </button>
         </div>
       ) : (
@@ -182,7 +182,7 @@ export function UploadProgressPage() {
               </p>
             </>
           ) : (
-            <p>Waiting for transfer progress…</p>
+            <p>Waiting for transfer progress...</p>
           )}
         </div>
       )}
@@ -201,11 +201,11 @@ export function UploadProgressPage() {
 
             <dl className="upload-summary">
               <dt>File</dt>
-              <dd>{fileName ?? "—"}</dd>
+              <dd>{fileName ?? "-"}</dd>
               <dt>Project</dt>
-              <dd>{project ?? "—"}</dd>
+              <dd>{project ?? "-"}</dd>
               <dt>Floor</dt>
-              <dd>{floor ?? "—"}</dd>
+              <dd>{floor ?? "-"}</dd>
               <dt>File size</dt>
               <dd>{formatBytes(fileSize)}</dd>
               <dt>Status</dt>

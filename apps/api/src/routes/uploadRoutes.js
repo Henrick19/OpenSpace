@@ -1,30 +1,59 @@
+import fs from "node:fs";
+import path from "node:path";
+import { randomUUID } from "node:crypto";
+
 import { Router } from "express";
+import multer from "multer";
 import { z } from "zod";
 
 import { UPLOAD_STATUSES } from "@openspace/shared";
 
-const optionalDate = z.iso.datetime({ offset: true }).optional().nullable();
-const createUploadSchema = z.object({
+// Validate metadata separately from the binary file received by Multer.
+const uploadFieldsSchema = z.object({
   siteId: z.string().trim().min(1),
-  projectName: z.string().trim().min(1),
-  sheetId: z.string().trim().min(1).optional().nullable(),
-  floorName: z.string().trim().min(1).optional().nullable(),
-  uploadName: z.string().trim().min(1),
-  fileName: z.string().trim().min(1),
-  fileSize: z.number().int().nonnegative().optional().nullable(),
-  capturedAt: optionalDate,
-  startPoint: z.object({ x: z.number(), y: z.number() }).optional().nullable(),
-  status: z.enum(UPLOAD_STATUSES).optional(),
+  sheetId: z.string().trim().min(1),
+  captureName: z.string().trim().min(1).max(120),
+  deviceId: z.string().trim().min(3).max(200),
+  capturedAt: z.iso.datetime({ offset: true }),
 });
 
-function handleRepositoryError(error, response) {
-  const status = error.message === "Upload was not found." ? 404 : 409;
-  return response.status(status).json({ message: error.message });
+function removeUploadedFile(file) {
+  if (file?.path) fs.rmSync(file.path, { force: true });
 }
 
-export function createUploadRouter(uploadRepository) {
+function cleanFileName(name) {
+  return Array.from(path.basename(name))
+    .filter((character) => character.charCodeAt(0) >= 32)
+    .join("");
+}
+
+/**
+ * Creates upload/history endpoints and connects them to local storage and the
+ * background Upload Coordinator.
+ */
+export function createUploadRouter({
+  uploadRepository,
+  projectRepository,
+  coordinator,
+  environment,
+}) {
+  // Multer stages one INSV file on disk before the route creates its DB record.
+  fs.mkdirSync(environment.uploadDirectory, { recursive: true });
+  const storage = multer.diskStorage({
+    destination: (_request, _file, callback) => callback(null, environment.uploadDirectory),
+    filename: (_request, file, callback) => callback(null, `${randomUUID()}${path.extname(file.originalname).toLowerCase()}`),
+  });
+  const receiveUpload = multer({
+    storage,
+    limits: { fileSize: environment.maxUploadBytes, files: 1 },
+    fileFilter: (_request, file, callback) => {
+      callback(null, path.extname(file.originalname).toLowerCase() === ".insv");
+    },
+  }).single("file");
+
   const router = Router();
 
+  // History list with optional search, status, project, date and page filters.
   router.get("/", (request, response) => {
     response.json(uploadRepository.list({
       search: request.query.search?.trim(),
@@ -32,68 +61,84 @@ export function createUploadRouter(uploadRepository) {
       siteId: request.query.siteId,
       from: request.query.from,
       to: request.query.to,
-      page: Number.parseInt(request.query.page ?? "1", 10),
-      pageSize: Number.parseInt(request.query.pageSize ?? "20", 10),
+      page: request.query.page,
+      pageSize: request.query.pageSize,
     }));
   });
 
   router.get("/recent", (request, response) => {
-    const limit = Number.parseInt(request.query.limit ?? "5", 10);
-    response.json({ items: uploadRepository.getRecent(Number.isNaN(limit) ? 5 : limit) });
+    response.json({ items: uploadRepository.getRecent(request.query.limit) });
   });
 
+  router.get("/statuses/values", (_request, response) => response.json({ items: UPLOAD_STATUSES }));
+
+  // Progress screen polls this endpoint for the latest local upload state.
   router.get("/:id", (request, response) => {
     const upload = uploadRepository.findById(request.params.id);
     if (!upload) return response.status(404).json({ message: "Upload was not found." });
     return response.json(upload);
   });
 
-  router.post("/", (request, response) => {
-    const result = createUploadSchema.safeParse(request.body);
-    if (!result.success) {
-      return response.status(400).json({ message: "Upload details are invalid.", issues: result.error.issues });
-    }
-    return response.status(201).json(uploadRepository.create(result.data));
-  });
-
-  router.patch("/:id/progress", (request, response) => {
-    const result = z.object({ progress: z.number().int().min(0).max(100) }).safeParse(request.body);
-    if (!result.success) return response.status(400).json({ message: "Progress must be between 0 and 100." });
-    try {
-      return response.json(uploadRepository.updateProgress(request.params.id, result.data.progress));
-    } catch (error) {
-      return handleRepositoryError(error, response);
-    }
+  router.post("/", (request, response, next) => {
+    receiveUpload(request, response, (uploadError) => {
+      if (uploadError) return next(uploadError);
+      try {
+        if (!request.file) {
+          return response.status(400).json({ message: "Select one .insv file." });
+        }
+        const parsed = uploadFieldsSchema.safeParse(request.body);
+        if (!parsed.success) {
+          removeUploadedFile(request.file);
+          return response.status(400).json({ message: "Upload details are invalid.", issues: parsed.error.issues });
+        }
+        // Confirm the submitted sheet belongs to an active, approved project.
+        const project = projectRepository.findBySiteId(parsed.data.siteId);
+        const sheet = projectRepository.findSheet(parsed.data.siteId, parsed.data.sheetId);
+        if (!project || project.status !== "active" || !sheet) {
+          removeUploadedFile(request.file);
+          return response.status(400).json({ message: "The selected project and floor do not match." });
+        }
+        const capturedAt = new Date(parsed.data.capturedAt);
+        // Persist metadata and the documented default start before returning 202.
+        const upload = uploadRepository.create({
+          siteId: project.siteId,
+          projectName: project.name,
+          sheetId: sheet.sheetId,
+          floorName: sheet.name,
+          captureName: parsed.data.captureName,
+          deviceId: parsed.data.deviceId,
+          fileName: cleanFileName(request.file.originalname),
+          localFilePath: request.file.path,
+          fileSize: request.file.size,
+          capturedAt: capturedAt.toISOString(),
+          startMicro: Math.round(capturedAt.getTime() * 1000),
+          startX: sheet.defaultStartPosition[0],
+          startY: sheet.defaultStartPosition[1],
+          startZ: sheet.defaultStartPosition[2],
+        });
+        // The browser receives an ID immediately while remote work continues.
+        coordinator.startInBackground(upload.id);
+        return response.status(202).json(upload);
+      } catch (error) {
+        removeUploadedFile(request.file);
+        return next(error);
+      }
+    });
   });
 
   router.post("/:id/retry", (request, response) => {
     try {
-      return response.json(uploadRepository.retry(request.params.id));
+      return response.status(202).json(coordinator.retry(request.params.id));
     } catch (error) {
-      return handleRepositoryError(error, response);
+      return response.status(409).json({ message: error.message });
     }
   });
 
-  router.post("/:id/complete", (request, response) => {
-    const result = z.object({
-      openSpaceCaptureId: z.string().trim().min(1).optional().nullable(),
-      viewerUrl: z.string().url().optional().nullable(),
-    }).safeParse(request.body ?? {});
-    if (!result.success) return response.status(400).json({ message: "Completion details are invalid." });
+  router.post("/:id/cancel", (request, response) => {
     try {
-      return response.json(uploadRepository.markCompleted(request.params.id, result.data));
+      return response.json(coordinator.cancel(request.params.id));
     } catch (error) {
-      return handleRepositoryError(error, response);
-    }
-  });
-
-  router.post("/:id/fail", (request, response) => {
-    const result = z.object({ errorMessage: z.string().trim().min(1) }).safeParse(request.body);
-    if (!result.success) return response.status(400).json({ message: "An error message is required." });
-    try {
-      return response.json(uploadRepository.markFailed(request.params.id, result.data.errorMessage));
-    } catch (error) {
-      return handleRepositoryError(error, response);
+      return response.status(409).json({ message: error.message });
     }
   });
 

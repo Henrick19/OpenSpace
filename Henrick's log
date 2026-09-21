@@ -101,3 +101,30 @@ Current next steps
 - Connect the Retry action to uploadApi.retry().
 - Integrate the real OpenSpace upload workflow after the remaining API details
   are confirmed.
+
+2026-09-16
+----------
+- Completed the local Node.js backend workflow for project configuration,
+  dashboard summaries, upload history, upload status, retry and cancellation.
+- Added the server-side OpenSpace capture-upload client and background upload
+  coordinator without exposing organisation credentials to the React frontend.
+- Added safe processing-state polling: a capture must first be observed in
+  pendingCaptures before its later disappearance can be treated as completed.
+- Added SQLite migrations and upload lifecycle fields, including transfer
+  progress, pending-state confirmation and local-file cleanup state.
+- Added frontend service methods for dashboard, project, upload history and
+  upload-progress screens.
+- Added interactive Swagger/OpenAPI documentation for PSB-owned backend
+  endpoints at http://localhost:8787/api/docs. Private OpenSpace endpoints and
+  credentials are intentionally excluded.
+- Standardised local development on Node.js 24 and rebuilt the native SQLite
+  dependency for that runtime.
+- Added backend workflow documentation and verified linting, automated tests
+  and production builds without making a live OpenSpace request.
+
+Current next steps
+------------------
+- Page owners can implement Dashboard, Upload History and Upload Progress by
+  calling the existing frontend service methods documented in Swagger.
+- Configure the ignored apps/api/.env file and perform the live OpenSpace test
+  only when the team is ready and authorised.
