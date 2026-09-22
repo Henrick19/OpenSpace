@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { ACTIVE_UPLOAD_STATUSES, DEFAULT_PAGE_SIZE, STATUS_LABELS } from "@openspace/shared";
+import {
+  ACTIVE_UPLOAD_STATUSES,
+  DEFAULT_PAGE_SIZE,
+  STATUS_LABELS,
+  TERMINAL_UPLOAD_STATUSES,
+} from "@openspace/shared";
 
 import { useApi } from "../hooks/useApi.js";
 import { PageHeading } from "../components/PageHeading.jsx";
@@ -70,6 +75,9 @@ export function CaptureHistoryPage() {
   const [projects, setProjects] = useState([]);
   const [retryingId, setRetryingId] = useState(null);
   const [retryError, setRetryError] = useState("");
+  // The row waiting for the user to confirm a delete, then the one being deleted.
+  const [confirmingId, setConfirmingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     projectApi.list().then(setProjects).catch(() => setProjects([]));
@@ -123,11 +131,13 @@ export function CaptureHistoryPage() {
   }, [hasActiveUpload]);
 
   function updateFilter(name, value) {
+    setConfirmingId(null);
     setFilters((current) => ({ ...current, [name]: value }));
     setPage(1);
   }
 
   function clearFilters() {
+    setConfirmingId(null);
     setSearchText("");
     setFilters(EMPTY_FILTERS);
     setPage(1);
@@ -143,6 +153,26 @@ export function CaptureHistoryPage() {
       setRetryError(requestError.message);
     } finally {
       setRetryingId(null);
+    }
+  }
+
+  /**
+   * Removes one finished record from the local database. The capture itself
+   * stays in OpenSpace; only the local history row and staged file are removed.
+   */
+  async function handleDelete(uploadId) {
+    setDeletingId(uploadId);
+    setRetryError("");
+    try {
+      await uploadApi.remove(uploadId);
+      setConfirmingId(null);
+      // Step back a page when the last row of the final page has just gone.
+      if (items.length === 1 && page > 1) setPage(page - 1);
+      else setReloadKey((key) => key + 1);
+    } catch (requestError) {
+      setRetryError(requestError.message);
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -243,7 +273,7 @@ export function CaptureHistoryPage() {
               return (
                 <div
                   key={upload.id}
-                  className={`history-row is-${upload.status}`}
+                  className={`history-row is-${upload.status}${confirmingId === upload.id ? " is-confirming" : ""}`}
                   role="link"
                   tabIndex={0}
                   onClick={open}
@@ -265,16 +295,45 @@ export function CaptureHistoryPage() {
                   </time>
 
                   <span className="history-action" onClick={(event) => event.stopPropagation()}>
-                    {upload.status === "failed" && (
-                      <button type="button" disabled={retryingId === upload.id} onClick={() => handleRetry(upload.id)}>
-                        {retryingId === upload.id ? "Retrying" : "Retry"}
-                      </button>
-                    )}
-                    {upload.status === "completed" && upload.viewerUrl && (
-                      <a href={upload.viewerUrl} target="_blank" rel="noreferrer">
-                        Open
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M7 17 17 7" /><path d="M8 7h9v9" /></svg>
-                      </a>
+                    {confirmingId === upload.id ? (
+                      <span className="history-confirm" role="alertdialog" aria-label={`Delete ${upload.captureName} from history`}>
+                        <span>Delete?</span>
+                        <button type="button" autoFocus onClick={() => setConfirmingId(null)}>Nvm</button>
+                        <button
+                          type="button"
+                          className="is-delete"
+                          disabled={deletingId === upload.id}
+                          onClick={() => handleDelete(upload.id)}
+                        >
+                          {deletingId === upload.id ? "Deleting" : "Delete"}
+                        </button>
+                      </span>
+                    ) : (
+                      <>
+                        {upload.status === "failed" && (
+                          <button type="button" disabled={retryingId === upload.id} onClick={() => handleRetry(upload.id)}>
+                            {retryingId === upload.id ? "Retrying" : "Retry"}
+                          </button>
+                        )}
+                        {upload.status === "completed" && upload.viewerUrl && (
+                          <a href={upload.viewerUrl} target="_blank" rel="noreferrer">
+                            Open
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M7 17 17 7" /><path d="M8 7h9v9" /></svg>
+                          </a>
+                        )}
+                        {/* Only finished records can be removed; the backend refuses the rest. */}
+                        {TERMINAL_UPLOAD_STATUSES.includes(upload.status) && (
+                          <button
+                            type="button"
+                            className="history-delete"
+                            aria-label={`Delete ${upload.captureName} from history`}
+                            title="Delete from local history"
+                            onClick={() => setConfirmingId(upload.id)}
+                          >
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" /></svg>
+                          </button>
+                        )}
+                      </>
                     )}
                   </span>
 

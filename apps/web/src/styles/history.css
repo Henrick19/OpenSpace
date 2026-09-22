@@ -166,7 +166,7 @@
 .history-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1.6fr) 150px minmax(0, 1fr) minmax(0, 1.2fr) 72px 52px 84px;
+  grid-template-columns: minmax(0, 1.6fr) 150px minmax(0, 1fr) minmax(0, 1.2fr) 72px 52px 124px;
   align-items: center;
   gap: 16px;
   min-height: 52px;
@@ -209,7 +209,8 @@
 .is-cancelled .history-name, .is-cancelled .history-status { color: var(--muted); }
 
 /* Row action: quiet text link, fully visible on hover or keyboard focus. */
-.history-action { display: flex; justify-content: flex-end; }
+.history-action { display: flex; justify-content: flex-end; gap: 6px; }
+.history-action > * { flex: none; }
 .history-action a, .history-action button {
   display: inline-flex;
   align-items: center;
@@ -234,6 +235,72 @@
 .history-row:focus-within .history-action button { opacity: 1; }
 .is-failed .history-action button { border-color: #f1c9c9; color: var(--red); opacity: 1; }
 .history-action button:disabled { cursor: progress; opacity: .6; }
+
+/* Delete: a quiet icon button, then a confirmation that slides in over the
+   size and time columns so the two can never overlap. */
+.history-delete { padding: 0 7px; color: var(--muted); }
+.history-delete:hover { border-color: #f1c9c9; color: var(--red); }
+.history-delete svg { transition: transform 160ms var(--ease); }
+.history-delete:hover svg { transform: translateY(-1px); }
+
+/* The columns the confirmation covers step aside first. */
+.history-row .history-size,
+.history-row .history-time { transition: opacity 160ms var(--ease); }
+.history-row.is-confirming .history-size,
+.history-row.is-confirming .history-time { opacity: 0; }
+
+.history-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .8rem;
+  white-space: nowrap;
+}
+.history-confirm > span { font-weight: 600; color: var(--red); }
+.history-confirm button {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 4px;
+  background: #fff;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 1;
+  transition: background-color 160ms var(--ease), border-color 160ms var(--ease);
+}
+.history-confirm button:hover { background: var(--hover); }
+.history-confirm button.is-delete { border-color: var(--red); background: var(--red); color: #fff; }
+.history-confirm button.is-delete:hover { background: #a93636; border-color: #a93636; }
+.history-confirm button:disabled { cursor: progress; opacity: .6; }
+
+/* On a wide row the confirmation floats above the columns it replaces. */
+@media (min-width: 641px) {
+  .history-row.is-confirming .history-action {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    translate: 0 -50%;
+    z-index: 1;
+  }
+  .history-confirm {
+    padding-left: 24px;
+    /* a short fade so the row behind it disappears rather than ends abruptly */
+    background: linear-gradient(to right, transparent, var(--row-bg, #fff) 24px);
+    animation: history-confirm-in 240ms var(--ease) both;
+  }
+  .history-row:hover { --row-bg: var(--hover); }
+}
+
+/* Below this width the row is already tight, so the floor column steps aside too. */
+@media (min-width: 641px) and (max-width: 1200px) {
+  .history-row.is-confirming .history-floor { opacity: 0; transition: opacity 160ms var(--ease); }
+}
+
+@keyframes history-confirm-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: none; }
+}
 
 /* A live hairline along the bottom edge of a running row. */
 .history-progress { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; overflow: hidden; pointer-events: none; }
@@ -288,7 +355,7 @@
 
 /* ---------- Narrower screens: drop the least useful columns first ---------- */
 @media (max-width: 1200px) {
-  .history-row { grid-template-columns: minmax(0, 1.5fr) 140px minmax(0, 1fr) 52px 84px; }
+  .history-row { grid-template-columns: minmax(0, 1.5fr) 140px minmax(0, 1fr) 52px 124px; }
   .history-file, .history-size { display: none; }
 }
 @media (max-width: 900px) {
