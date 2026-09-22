@@ -110,7 +110,7 @@ export function NewCapturePage() {
       data.append("capturedAt", new Date(form.capturedAt).toISOString());
       data.append("file", form.file);
       const upload = await uploadApi.create(data, setLocalProgress);
-      navigate(`/captures/${upload.id}/progress-test`);
+      navigate(`/captures/${upload.id}/progress`);
     } catch (requestError) {
       setError(requestError.message);
       setSubmitting(false);
