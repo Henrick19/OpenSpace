@@ -1,40 +1,33 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { STATUS_LABELS } from "@openspace/shared";
 
+import { ErrorState, LoadingState } from "../components/FeedbackState.jsx";
+import { PageHeading } from "../components/PageHeading.jsx";
 import { uploadApi } from "../services/uploadApi.js";
+import { formatBytes } from "../utils/format.js";
 
-const POLL_INTERVAL_MS = 2000;
+const POLL_INTERVAL_MS = 3000;
+
+const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
+
+/**
+ * Maps a backend status to one of the three UI stages.
+ * submitted / processing / completed all count as "OpenSpace processing" (stage 3)
+ * once the file transfer itself has finished.
+ */
+function getStage(status) {
+  if (status === "staged") return 1;
+  if (status === "uploading") return 2;
+  if (status === "submitted" || status === "processing" || status === "completed") return 3;
+  return 1;
+}
 
 const STAGES = [
-  { key: "verified", label: "Verified" },
-  { key: "uploading", label: "Uploading file" },
-  { key: "complete", label: "Upload complete" },
+  { stage: 1, label: "Verified" },
+  { stage: 2, label: "Uploading file" },
+  { stage: 3, label: "OpenSpace processing" },
 ];
-
-function formatBytes(bytes) {
-  if (bytes === undefined || bytes === null) return "-";
-  if (bytes < 1024) return `${bytes} B`;
-  const units = ["KB", "MB", "GB"];
-  let value = bytes;
-  let unitIndex = -1;
-  do {
-    value /= 1024;
-    unitIndex += 1;
-  } while (value >= 1024 && unitIndex < units.length - 1);
-  return `${value.toFixed(1)} ${units[unitIndex]}`;
-}
-
-function currentStageKey(status) {
-  if (status === "completed") return "complete";
-  if (status === "uploading" || status === "retrying") return "uploading";
-  return "verified";
-}
-
-function statusBadgeVariant(status) {
-  if (status === "completed") return "success";
-  if (status === "failed") return "danger";
-  return "primary";
-}
 
 /* --- Inline SVG icons (no extra dependency needed) --- */
 function IconFile(props) {
@@ -74,13 +67,6 @@ function IconCheckCircle(props) {
     </svg>
   );
 }
-function IconAlertTriangle(props) {
-  return (
-    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" {...props}>
-      <path d="M8.68 1.5c-.3-.5-1.06-.5-1.36 0L.34 13.5A.75.75 0 0 0 1 14.5h14a.75.75 0 0 0 .66-1L8.68 1.5zM8 5.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 5.5zm0 6.25a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z" />
-    </svg>
-  );
-}
 function IconUploadCloud(props) {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" {...props}>
@@ -116,69 +102,64 @@ export function UploadProgressPage() {
   const { captureId } = useParams();
   const navigate = useNavigate();
 
-  const [record, setRecord] = useState(null);
-  const [loadError, setLoadError] = useState(null);
+  const [upload, setUpload] = useState(null);
+  const [requestError, setRequestError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
-  const [showCompleteModal, setShowCompleteModal] = useState(false);
 
   const pollRef = useRef(null);
 
-  const fetchRecord = useCallback(async () => {
+  const loadUpload = useCallback(async () => {
     try {
       const data = await uploadApi.get(captureId);
-      setRecord(data);
-      setLoadError(null);
-      if (data?.status === "completed") {
-        setShowCompleteModal(true);
-      }
+      setUpload(data);
+      setRequestError(null);
       return data;
     } catch (err) {
-      setLoadError(err.message ?? "Failed to load upload status.");
+      setRequestError(err.message ?? "Could not reach the OpenSpace API service.");
       return null;
     }
   }, [captureId]);
 
+  // Initial load.
   useEffect(() => {
     let isMounted = true;
-
-    async function initialLoad() {
+    (async () => {
       setIsLoading(true);
-      const data = await fetchRecord();
+      await loadUpload();
       if (isMounted) setIsLoading(false);
-      if (data && data.status !== "completed" && data.status !== "failed") {
-        pollRef.current = setInterval(fetchRecord, POLL_INTERVAL_MS);
-      }
-    }
-
-    initialLoad();
-
+    })();
     return () => {
       isMounted = false;
-      if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [fetchRecord]);
+  }, [loadUpload]);
 
-  // Stop polling once we reach a terminal state.
+  // Poll only while the upload is active; stop on any terminal status.
   useEffect(() => {
-    if (record?.status === "completed" || record?.status === "failed") {
+    if (!upload || TERMINAL_STATUSES.has(upload.status)) {
       if (pollRef.current) {
-        clearInterval(pollRef.current);
+        window.clearInterval(pollRef.current);
         pollRef.current = null;
       }
+      return undefined;
     }
-  }, [record?.status]);
+
+    pollRef.current = window.setInterval(loadUpload, POLL_INTERVAL_MS);
+    return () => {
+      if (pollRef.current) {
+        window.clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [upload?.status, loadUpload]);
 
   async function handleRetry() {
     setIsRetrying(true);
     try {
       await uploadApi.retry(captureId);
-      await fetchRecord();
-      if (!pollRef.current) {
-        pollRef.current = setInterval(fetchRecord, POLL_INTERVAL_MS);
-      }
+      await loadUpload();
     } catch (err) {
-      setLoadError(err.message ?? "Retry failed.");
+      setRequestError(err.message ?? "Retry failed.");
     } finally {
       setIsRetrying(false);
     }
@@ -186,30 +167,21 @@ export function UploadProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="container-fluid py-2" aria-busy="true">
-        <div className="d-flex align-items-center gap-2 text-muted">
-          <div className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-          Loading upload status...
-        </div>
+      <div className="container-fluid py-2">
+        <LoadingState message="Loading upload progress..." />
       </div>
     );
   }
 
-  if (loadError && !record) {
+  if (requestError && !upload) {
     return (
       <div className="container-fluid py-2">
-        <div className="alert alert-danger d-flex align-items-center gap-2" role="alert">
-          <IconAlertTriangle />
-          <span>Something went wrong: {loadError}</span>
-        </div>
-        <button type="button" className="btn btn-outline-danger btn-sm" onClick={fetchRecord}>
-          Retry
-        </button>
+        <ErrorState message={requestError} onRetry={loadUpload} />
       </div>
     );
   }
 
-  if (!record) {
+  if (!upload) {
     return (
       <div className="container-fluid py-2">
         <p className="text-muted">No upload record found for this capture.</p>
@@ -223,29 +195,29 @@ export function UploadProgressPage() {
     floorName,
     fileSize,
     status,
-    bytesSent,
     uploadProgress,
+    bytesSent,
     viewerUrl,
     errorMessage,
-  } = record;
-  const totalBytes = fileSize;
-  const hasDeterminateProgress =
-    typeof uploadProgress === "number" || (typeof bytesSent === "number" && typeof totalBytes === "number" && totalBytes > 0);
-  const percent =
-    typeof uploadProgress === "number"
-      ? Math.round(uploadProgress)
-      : hasDeterminateProgress
-        ? Math.round((bytesSent / totalBytes) * 100)
-        : null;
-  const activeStageIndex = STAGES.findIndex((s) => s.key === currentStageKey(status));
+    pendingSeen,
+  } = upload;
+
   const isFailed = status === "failed";
+  const isTransferring = status === "uploading";
+  const isPostTransfer = status === "submitted" || status === "processing";
+  const isCompleted = status === "completed";
+  const activeStage = getStage(status);
 
   return (
     <div className="container-fluid py-2">
-      <h1 className="h3 mb-4 text-primary fw-bold d-flex align-items-center gap-2">
-        <IconUploadCloud />
-        Uploading capture
-      </h1>
+      <PageHeading
+        title={
+          <span className="d-flex align-items-center gap-2 text-primary">
+            <IconUploadCloud />
+            Uploading capture
+          </span>
+        }
+      />
 
       {/* File summary card */}
       <div className="card mb-4 shadow-sm">
@@ -281,20 +253,20 @@ export function UploadProgressPage() {
 
       {/* Stage tracker */}
       <div className="d-flex justify-content-between align-items-center mb-4 px-2">
-        {STAGES.map((stage, index) => {
-          const isDone = index < activeStageIndex;
-          const isActive = index === activeStageIndex;
+        {STAGES.map(({ stage, label }, index) => {
+          const isDone = stage < activeStage;
+          const isActive = stage === activeStage;
           return (
-            <div key={stage.key} className="d-flex flex-column align-items-center flex-fill position-relative">
+            <div key={stage} className="d-flex flex-column align-items-center flex-fill position-relative">
               {index > 0 && (
                 <div
-                  className={`position-absolute top-0 start-0 translate-middle-y ${activeStageIndex >= index ? "bg-primary" : "bg-secondary-subtle"}`}
+                  className={`position-absolute top-0 start-0 translate-middle-y ${activeStage >= stage ? "bg-primary" : "bg-secondary-subtle"}`}
                   style={{ height: 2, width: "50%", marginTop: 20 }}
                 />
               )}
               {index < STAGES.length - 1 && (
                 <div
-                  className={`position-absolute top-0 end-0 translate-middle-y ${activeStageIndex > index ? "bg-primary" : "bg-secondary-subtle"}`}
+                  className={`position-absolute top-0 end-0 translate-middle-y ${activeStage > stage ? "bg-primary" : "bg-secondary-subtle"}`}
                   style={{ height: 2, width: "50%", marginTop: 20 }}
                 />
               )}
@@ -304,62 +276,68 @@ export function UploadProgressPage() {
                 }`}
                 style={{ width: 40, height: 40, zIndex: 1 }}
               >
-                {isDone ? <IconCheckCircle /> : index + 1}
+                {isDone ? <IconCheckCircle /> : stage}
               </span>
-              <span className={`small mt-2 fw-semibold ${isActive ? "text-primary" : "text-muted"}`}>{stage.label}</span>
+              <span className={`small mt-2 fw-semibold text-center ${isActive ? "text-primary" : "text-muted"}`}>{label}</span>
             </div>
           );
         })}
       </div>
 
-      {/* Status + progress / error */}
+      {/* Status card */}
       {isFailed ? (
-        <div className="card border-danger mb-4">
-          <div className="card-body">
-            <div className="d-flex align-items-center gap-2 mb-3">
-              <IconAlertTriangle className="text-danger" />
-              <span className="badge text-bg-danger">Failed</span>
-              <span className="text-danger">{errorMessage}</span>
-            </div>
-            <button type="button" className="btn btn-outline-danger btn-sm" onClick={handleRetry} disabled={isRetrying}>
-              {isRetrying ? "Retrying..." : "Retry"}
-            </button>
-          </div>
-        </div>
+        <ErrorState message={errorMessage || "Upload failed."} onRetry={!isRetrying ? handleRetry : undefined} />
       ) : (
         <div className="card mb-4">
           <div className="card-body">
             <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className={`badge text-bg-${statusBadgeVariant(status)} text-uppercase d-inline-flex align-items-center gap-1`}>
-                <IconClock /> {status}
+              <span className="badge text-bg-primary text-uppercase d-inline-flex align-items-center gap-1">
+                <IconClock /> {STATUS_LABELS[status] ?? status}
               </span>
-              {hasDeterminateProgress && <span className="text-muted small">{percent}%</span>}
+              {isTransferring && typeof uploadProgress === "number" && (
+                <span className="text-muted small">{Math.round(uploadProgress)}%</span>
+              )}
             </div>
-            {hasDeterminateProgress ? (
+
+            {isTransferring && (
               <>
-                <div className="progress" role="progressbar" aria-valuenow={percent} aria-valuemin="0" aria-valuemax="100" style={{ height: 10 }}>
-                  <div className="progress-bar" style={{ width: `${percent}%`, transition: "width 0.4s linear" }} />
+                <div
+                  className="progress"
+                  role="progressbar"
+                  aria-valuenow={uploadProgress}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  style={{ height: 10 }}
+                >
+                  <div
+                    className="progress-bar"
+                    style={{ width: `${uploadProgress}%`, transition: "width 0.4s linear" }}
+                  />
                 </div>
                 <div className="text-muted small mt-2">
-                  {formatBytes(bytesSent)} of {formatBytes(totalBytes)}
+                  {formatBytes(bytesSent)} of {formatBytes(fileSize)}
                 </div>
               </>
-            ) : (
-              <p className="text-muted mb-0">Waiting for transfer progress...</p>
+            )}
+
+            {isPostTransfer && !isCompleted && (
+              <p className="text-muted mb-0">
+                File transfer complete. OpenSpace is processing the capture.
+                {pendingSeen && " The capture has been observed in pendingCaptures. Waiting for OpenSpace processing to finish."}
+              </p>
             )}
           </div>
         </div>
       )}
 
-      {loadError && record && (
+      {requestError && upload && (
         <div className="alert alert-warning d-flex align-items-center gap-2" role="alert">
-          <IconAlertTriangle />
-          <span>{loadError}</span>
+          <span>{requestError}</span>
         </div>
       )}
 
       {/* Completion modal */}
-      {showCompleteModal && (
+      {isCompleted && (
         <>
           <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="upload-complete-title">
             <div className="modal-dialog modal-dialog-centered">
@@ -371,9 +349,7 @@ export function UploadProgressPage() {
                   </h2>
                 </div>
                 <div className="modal-body">
-                  <p className="text-muted">
-                    The file transfer finished successfully. OpenSpace may still be processing the capture.
-                  </p>
+                  <p className="text-muted">OpenSpace processing has been confirmed as complete.</p>
                   <dl className="row mb-0">
                     <dt className="col-4 text-muted small text-uppercase d-flex align-items-center gap-1"><IconFile /> File</dt>
                     <dd className="col-8">{fileName ?? "-"}</dd>
@@ -385,7 +361,7 @@ export function UploadProgressPage() {
                     <dd className="col-8">{formatBytes(fileSize)}</dd>
                     <dt className="col-4 text-muted small text-uppercase">Status</dt>
                     <dd className="col-8">
-                      <span className="badge text-bg-success text-uppercase">{status}</span>
+                      <span className="badge text-bg-success text-uppercase">{STATUS_LABELS[status]}</span>
                     </dd>
                   </dl>
                 </div>
