@@ -72,6 +72,18 @@ export function createUploadRouter({
 
   router.get("/statuses/values", (_request, response) => response.json({ items: UPLOAD_STATUSES }));
 
+  // Live, sanitized diagnostic view of the capture's current OpenSpace state.
+  router.get("/:id/remote-status", async (request, response) => {
+    if (!uploadRepository.findById(request.params.id)) {
+      return response.status(404).json({ message: "Upload was not found." });
+    }
+    try {
+      return response.json(await coordinator.getRemoteStatus(request.params.id));
+    } catch (error) {
+      return response.status(502).json({ message: error.message });
+    }
+  });
+
   // Progress screen polls this endpoint for the latest local upload state.
   router.get("/:id", (request, response) => {
     const upload = uploadRepository.findById(request.params.id);

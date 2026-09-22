@@ -191,5 +191,43 @@ export function createUploadCoordinator({ uploadRepository, environment }) {
     }
   }
 
-  return { cancel, resumeProcessingChecks, retry, startInBackground };
+  async function getRemoteStatus(uploadId) {
+    if (!client) {
+      throw new Error("Remote status diagnostics are available only in live mode.");
+    }
+    const upload = uploadRepository.findById(uploadId);
+    if (!upload) throw new Error("Upload was not found.");
+    if (!upload.captureId) {
+      throw new Error("This upload does not have an OpenSpace capture ID yet.");
+    }
+
+    const pendingCaptures = await client.getPendingCaptures(upload.siteId);
+    const capture = pendingCaptures.find(
+      (item) => item.clientCaptureId === upload.captureId,
+    );
+
+    return {
+      uploadId: upload.id,
+      captureId: upload.captureId,
+      checkedAt: new Date().toISOString(),
+      pendingCapturePresent: Boolean(capture),
+      submitted: typeof capture?.submitted === "boolean"
+        ? capture.submitted
+        : null,
+      attachedCaptureFiles: Array.isArray(capture?.captureFiles)
+        ? capture.captureFiles.length
+        : null,
+      pendingSeenLocally: upload.pendingSeen,
+      completionInferred: upload.pendingSeen && !capture,
+      diagnosticOnly: true,
+    };
+  }
+
+  return {
+    cancel,
+    getRemoteStatus,
+    resumeProcessingChecks,
+    retry,
+    startInBackground,
+  };
 }

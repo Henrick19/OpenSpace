@@ -1,9 +1,13 @@
-import { randomBytes } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 /**
- * Generates a compact URL-safe identifier required by the OpenSpace workflow.
- * This is an ID generator, not a QR-code utility.
+ * Generate the OpenSpace `url-id` format documented for capture and upload IDs.
+ *
+ * OpenSpace requires the 16 bytes of a genuine UUIDv4 encoded as URL-safe
+ * Base64 without padding. Encoding random bytes directly is insufficient
+ * because their UUID version/variant bits are not guaranteed to be v4.
  */
 export function createUrlId() {
-  return randomBytes(16).toString("base64url");
+  const uuidHex = randomUUID().replaceAll("-", "");
+  return Buffer.from(uuidHex, "hex").toString("base64url");
 }

@@ -3,8 +3,14 @@ import { Transform } from "node:stream";
 
 // Convert OpenSpace error bodies into one consistent message for the coordinator.
 function messageFromResponse(status, body) {
-  const message = body?.message || body?.error_description || body?.error;
-  return message ? `OpenSpace request failed (${status}): ${message}` : `OpenSpace request failed (${status}).`;
+  const message = body?.message
+    || body?.error_description
+    || body?.error
+    || body?.text
+    || (Array.isArray(body?.errors) ? body.errors.join("; ") : null);
+  return message
+    ? `OpenSpace request failed (${status}): ${message}`
+    : `OpenSpace request failed (${status}).`;
 }
 
 async function parseResponse(response) {
@@ -26,7 +32,8 @@ export function createOpenSpaceClient(config) {
   let tokenCache = null;
 
   async function getAccessToken() {
-    if (tokenCache && tokenCache.expiresAt > Date.now() + 60_000) return tokenCache.token;
+    if (tokenCache && tokenCache.expiresAt > Date.now() + 60_000)
+      return tokenCache.token;
     const form = new URLSearchParams({
       grant_type: "password",
       audience: "openspace.ai",
@@ -41,10 +48,12 @@ export function createOpenSpaceClient(config) {
       body: form,
     });
     const body = await parseResponse(response);
-    if (!response.ok) throw new Error(messageFromResponse(response.status, body));
+    if (!response.ok)
+      throw new Error(messageFromResponse(response.status, body));
     tokenCache = {
       token: body.access_token,
-      expiresAt: Date.now() + Math.max((body.expires_in || 3600) - 60, 60) * 1000,
+      expiresAt:
+        Date.now() + Math.max((body.expires_in || 3600) - 60, 60) * 1000,
     };
     return tokenCache.token;
   }
@@ -56,7 +65,8 @@ export function createOpenSpaceClient(config) {
       headers: { Authorization: `Bearer ${token}`, ...options.headers },
     });
     const body = await parseResponse(response);
-    if (!response.ok) throw new Error(messageFromResponse(response.status, body));
+    if (!response.ok)
+      throw new Error(messageFromResponse(response.status, body));
     return body;
   }
 
@@ -70,15 +80,22 @@ export function createOpenSpaceClient(config) {
   }
 
   async function createCapture(upload, captureId) {
-    return postJson(`/api/upcap/site/${encodeURIComponent(upload.siteId)}/upcap-session`, {
-      id: captureId,
-      sheetId: upload.sheetId,
-      captureName: upload.captureName,
-      startMicro: upload.startMicro,
-      startPosition: upload.startPosition,
-      deviceId: upload.deviceId,
-      deviceState: { timezoneOffsetMinutes: -new Date(upload.capturedAt).getTimezoneOffset() },
-    });
+    return postJson(
+      `/api/upcap/site/${encodeURIComponent(upload.siteId)}/upcap-session`,
+      {
+        id: captureId,
+        sheetId: upload.sheetId,
+        captureName: upload.captureName,
+        startMicro: upload.startMicro,
+        startPosition: upload.startPosition,
+        deviceId: upload.deviceId,
+        deviceState: {
+          timezoneOffsetMinutes: -new Date(
+            upload.capturedAt,
+          ).getTimezoneOffset(),
+        },
+      },
+    );
   }
 
   async function attachMetadata(upload, captureId, uploadId) {
@@ -86,25 +103,30 @@ export function createOpenSpaceClient(config) {
       `/api/upcap/site/${encodeURIComponent(upload.siteId)}/session/${encodeURIComponent(captureId)}/match`,
       {
         startMicro: upload.startMicro,
-        files: [{
-          deviceId: upload.deviceId,
-          deviceUrl: upload.fileName,
-          file: { id: uploadId },
-        }],
+        files: [
+          {
+            deviceId: upload.deviceId,
+            deviceUrl: upload.fileName,
+            file: { id: uploadId },
+          },
+        ],
       },
     );
   }
 
   async function registerUpload(upload, uploadId) {
-    return postJson(`/api/site/${encodeURIComponent(upload.siteId)}/upcap/uploads`, {
-      deviceId: upload.deviceId,
-      deviceFilename: upload.fileName,
-      tags: ["manual"],
-      contentType: "video/insv",
-      size: upload.fileSize,
-      numParts: 1,
-      uploadId,
-    });
+    return postJson(
+      `/api/site/${encodeURIComponent(upload.siteId)}/upcap/uploads`,
+      {
+        deviceId: upload.deviceId,
+        deviceFilename: upload.fileName,
+        tags: ["manual"],
+        contentType: "video/insv",
+        size: upload.fileSize,
+        numParts: 1,
+        uploadId,
+      },
+    );
   }
 
   async function uploadFile(upload, uploadId, { signal, onProgress }) {
@@ -142,9 +164,17 @@ export function createOpenSpaceClient(config) {
 
   async function getPendingCaptures(siteId) {
     // layout2 is intentionally limited to the documented pendingCaptures check.
-    const layout = await request(`/api/site/${encodeURIComponent(siteId)}/layout2?full=true`);
+    const layout = await request(
+      `/api/site/${encodeURIComponent(siteId)}/layout2?full=true`,
+    );
     return Array.isArray(layout?.pendingCaptures) ? layout.pendingCaptures : [];
   }
 
-  return { attachMetadata, createCapture, getPendingCaptures, registerUpload, uploadFile };
+  return {
+    attachMetadata,
+    createCapture,
+    getPendingCaptures,
+    registerUpload,
+    uploadFile,
+  };
 }
