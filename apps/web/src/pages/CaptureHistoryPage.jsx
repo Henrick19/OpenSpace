@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ACTIVE_UPLOAD_STATUSES, DEFAULT_PAGE_SIZE, STATUS_LABELS } from "@openspace/shared";
 
 import { useApi } from "../hooks/useApi.js";
+import { PageHeading } from "../components/PageHeading.jsx";
 import { projectApi } from "../services/projectApi.js";
 import { uploadApi } from "../services/uploadApi.js";
 import { formatBytes } from "../utils/format.js";
@@ -155,10 +156,11 @@ export function CaptureHistoryPage() {
 
   return (
     <div className="history content-width">
-      <header className="history-head">
-        <h1>Upload history</h1>
-        <Link className="history-btn is-primary" to="/captures/new">New upload</Link>
-      </header>
+      <PageHeading
+        title="Upload history"
+        description="Search, filter and review uploads stored in the local SQLite database."
+        action={<Link className="btn btn-primary" to="/captures/new">+ New upload</Link>}
+      />
 
       <div className="history-bar">
         <nav className="history-tabs" aria-label="Filter by status">

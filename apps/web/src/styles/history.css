@@ -3,14 +3,14 @@
    other page changes. Colours are the team palette from base.css.
    ================================================================ */
 .history {
-  --ink: #172033;
-  --muted: #64748b;
+  --ink: var(--text-primary);
+  --muted: var(--text-secondary);
   --faint: #94a3b8;
   --rule: #e6ebf1;
-  --rule-strong: #d5e0eb;
+  --rule-strong: var(--border-color);
   --hover: #f5f9fd;
-  --blue: #2477c7;
-  --blue-dark: #174a7e;
+  --blue: var(--psb-blue);
+  --blue-dark: var(--psb-navy);
   --tint: #edf4fa;
   --green: #1f9d55;
   --red: #c24141;
@@ -22,10 +22,7 @@
   color: var(--ink);
 }
 
-/* ---------- Heading ---------- */
-.history-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
-.history-head h1 { margin: 0; font-size: 1.6rem; font-weight: 750; letter-spacing: -0.03em; }
-
+/* ---------- Secondary buttons used inside empty states ---------- */
 .history-btn {
   display: inline-flex;
   align-items: center;
@@ -298,7 +295,6 @@
   .history-search, .history-search:focus-within { flex: 1 1 200px; width: auto; }
 }
 @media (max-width: 640px) {
-  .history-head h1 { font-size: 1.35rem; }
   .history-row {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas: "name time" "status action";

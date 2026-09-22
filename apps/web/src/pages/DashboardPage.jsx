@@ -8,6 +8,7 @@ import {
   ErrorState,
   EmptyState
 } from "../components/FeedbackState.jsx";
+import { PageHeading } from "../components/PageHeading.jsx";
 
 const initialSummary = {
   totalUploads: 0,
@@ -54,23 +55,19 @@ export function DashboardPage() {
   return (
     <div className="content-width">
 
-      <div className="page-heading">
-        <div>
-          <h1>Dashboard</h1>
-
-          <p>
-            Upload activity from the local SQLite database
-          </p>
-        </div>
-
-        <button
+      <PageHeading
+        title="Dashboard"
+        description="Upload activity from the local SQLite database."
+        action={(
+          <button
           type="button"
           className="btn btn-primary"
           onClick={() => navigate("/captures/new")}
-        >
-          + New Upload
-        </button>
-      </div>
+          >
+            + New upload
+          </button>
+        )}
+      />
 
       <div className="metric-grid">
         <ReuseCard

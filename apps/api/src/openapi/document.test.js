@@ -27,4 +27,13 @@ describe("PSB backend OpenAPI document", () => {
     expect(serialized).not.toContain("clientsecret");
     expect(serialized).not.toContain("openspace_password");
   });
+
+  it("documents local-only upload history deletion", () => {
+    const deleteOperation = OPENAPI_DOCUMENT.paths["/api/uploads/{id}"].delete;
+    expect(deleteOperation.operationId).toBe("deleteUploadHistory");
+    expect(deleteOperation.description).toMatch(/local SQLite database/i);
+    expect(deleteOperation.description).toMatch(/does not delete.*OpenSpace/i);
+    expect(deleteOperation.responses[204]).toBeDefined();
+    expect(deleteOperation.responses[409]).toBeDefined();
+  });
 });

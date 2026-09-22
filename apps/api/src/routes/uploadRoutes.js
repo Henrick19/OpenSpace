@@ -6,7 +6,9 @@ import { Router } from "express";
 import multer from "multer";
 import { z } from "zod";
 
-import { UPLOAD_STATUSES } from "@openspace/shared";
+import { TERMINAL_UPLOAD_STATUSES, UPLOAD_STATUSES } from "@openspace/shared";
+
+const DELETABLE_UPLOAD_STATUSES = new Set(TERMINAL_UPLOAD_STATUSES);
 
 // Validate metadata separately from the binary file received by Multer.
 const uploadFieldsSchema = z.object({
@@ -89,6 +91,30 @@ export function createUploadRouter({
     const upload = uploadRepository.findById(request.params.id);
     if (!upload) return response.status(404).json({ message: "Upload was not found." });
     return response.json(upload);
+  });
+
+  // Remove one terminal record from local history. This never deletes the
+  // corresponding capture from OpenSpace, which is outside this integration.
+  router.delete("/:id", (request, response, next) => {
+    const upload = uploadRepository.findById(request.params.id, {
+      includeLocalPath: true,
+    });
+    if (!upload) {
+      return response.status(404).json({ message: "Upload was not found." });
+    }
+    if (!DELETABLE_UPLOAD_STATUSES.has(upload.status)) {
+      return response.status(409).json({
+        message: "Only completed, failed or cancelled upload history can be deleted.",
+      });
+    }
+
+    try {
+      removeUploadedFile({ path: upload.localFilePath });
+      uploadRepository.deleteById(upload.id);
+      return response.status(204).end();
+    } catch (error) {
+      return next(error);
+    }
   });
 
   router.post("/", (request, response, next) => {

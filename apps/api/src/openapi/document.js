@@ -211,6 +211,18 @@ export const OPENAPI_DOCUMENT = {
         parameters: [{ $ref: "#/components/parameters/UploadId" }],
         responses: { 200: uploadResponse, 404: errorResponse },
       },
+      delete: {
+        tags: ["Uploads"],
+        summary: "Delete one local upload-history record",
+        description: "Deletes only a completed, failed or cancelled record from PSB's local SQLite database and removes any retained local INSV retry file. It does not delete or cancel a capture in OpenSpace.",
+        operationId: "deleteUploadHistory",
+        parameters: [{ $ref: "#/components/parameters/UploadId" }],
+        responses: {
+          204: { description: "Local history record deleted." },
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
     },
     "/api/uploads/{id}/remote-status": {
       get: {
