@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { STATUS_LABELS } from "@openspace/shared";
+import { STATUS_LABELS, TERMINAL_UPLOAD_STATUSES } from "@openspace/shared";
 
 import { ErrorState, LoadingState } from "../components/FeedbackState.jsx";
 import { PageHeading } from "../components/PageHeading.jsx";
@@ -9,7 +9,7 @@ import { formatBytes } from "../utils/format.js";
 
 const POLL_INTERVAL_MS = 3000;
 
-const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled"]);
+const TERMINAL_STATUSES = new Set(TERMINAL_UPLOAD_STATUSES);
 
 /**
  * Maps a backend status to one of the three UI stages.
@@ -167,7 +167,7 @@ export function UploadProgressPage() {
 
   if (isLoading) {
     return (
-      <div className="container-fluid py-2">
+      <div className="content-width form-width">
         <LoadingState message="Loading upload progress..." />
       </div>
     );
@@ -175,7 +175,7 @@ export function UploadProgressPage() {
 
   if (requestError && !upload) {
     return (
-      <div className="container-fluid py-2">
+      <div className="content-width form-width">
         <ErrorState message={requestError} onRetry={loadUpload} />
       </div>
     );
@@ -183,8 +183,8 @@ export function UploadProgressPage() {
 
   if (!upload) {
     return (
-      <div className="container-fluid py-2">
-        <p className="text-muted">No upload record found for this capture.</p>
+      <div className="content-width form-width">
+        <ErrorState message="No upload record was found for this capture." />
       </div>
     );
   }
@@ -209,89 +209,41 @@ export function UploadProgressPage() {
   const activeStage = getStage(status);
 
   return (
-    <div className="container-fluid py-2">
+    <div className="content-width form-width">
       <PageHeading
-        title={
-          <span className="d-flex align-items-center gap-2 text-primary">
-            <IconUploadCloud />
-            Uploading capture
-          </span>
-        }
+        title="Upload progress"
+        description="Track the local file transfer and OpenSpace processing status."
       />
 
       {/* File summary card */}
-      <div className="card mb-4 shadow-sm">
-        <div className="card-body">
-          <div className="row g-3">
-            <div className="col-6 col-md-3">
-              <div className="text-uppercase text-muted small fw-semibold d-flex align-items-center gap-1">
-                <IconFile className="text-primary" /> File
-              </div>
-              <div className="fw-medium">{fileName ?? "-"}</div>
-            </div>
-            <div className="col-6 col-md-3">
-              <div className="text-uppercase text-muted small fw-semibold d-flex align-items-center gap-1">
-                <IconBuilding className="text-primary" /> Project
-              </div>
-              <div className="fw-medium">{projectName ?? "-"}</div>
-            </div>
-            <div className="col-6 col-md-3">
-              <div className="text-uppercase text-muted small fw-semibold d-flex align-items-center gap-1">
-                <IconLayers className="text-primary" /> Floor
-              </div>
-              <div className="fw-medium">{floorName ?? "-"}</div>
-            </div>
-            <div className="col-6 col-md-3">
-              <div className="text-uppercase text-muted small fw-semibold d-flex align-items-center gap-1">
-                <IconDatabase className="text-primary" /> File size
-              </div>
-              <div className="fw-medium">{formatBytes(fileSize)}</div>
-            </div>
-          </div>
-        </div>
+      <div className="upload-summary">
+        <div><span>File</span><strong title={fileName}>{fileName ?? "-"}</strong></div>
+        <div><span>Project</span><strong>{projectName ?? "-"}</strong></div>
+        <div><span>Floor</span><strong>{floorName ?? "-"}</strong></div>
+        <div><span>File size</span><strong>{formatBytes(fileSize)}</strong></div>
       </div>
 
       {/* Stage tracker */}
-      <div className="d-flex justify-content-between align-items-center mb-4 px-2">
-        {STAGES.map(({ stage, label }, index) => {
+      <ol className="stepper" aria-label="Upload stages">
+        {STAGES.map(({ stage, label }) => {
           const isDone = stage < activeStage;
           const isActive = stage === activeStage;
           return (
-            <div key={stage} className="d-flex flex-column align-items-center flex-fill position-relative">
-              {index > 0 && (
-                <div
-                  className={`position-absolute top-0 start-0 translate-middle-y ${activeStage >= stage ? "bg-primary" : "bg-secondary-subtle"}`}
-                  style={{ height: 2, width: "50%", marginTop: 20 }}
-                />
-              )}
-              {index < STAGES.length - 1 && (
-                <div
-                  className={`position-absolute top-0 end-0 translate-middle-y ${activeStage > stage ? "bg-primary" : "bg-secondary-subtle"}`}
-                  style={{ height: 2, width: "50%", marginTop: 20 }}
-                />
-              )}
-              <span
-                className={`d-flex align-items-center justify-content-center rounded-circle fw-bold ${
-                  isActive || isDone ? "bg-primary text-white" : "bg-body-secondary text-muted"
-                }`}
-                style={{ width: 40, height: 40, zIndex: 1 }}
-              >
-                {isDone ? <IconCheckCircle /> : stage}
-              </span>
-              <span className={`small mt-2 fw-semibold text-center ${isActive ? "text-primary" : "text-muted"}`}>{label}</span>
-            </div>
+            <li key={stage} className={isActive || isDone ? "active" : ""} aria-current={isActive ? "step" : undefined}>
+              <span>{isDone ? <IconCheckCircle /> : stage}</span>
+              <strong>{label}</strong>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {/* Status card */}
       {isFailed ? (
         <ErrorState message={errorMessage || "Upload failed."} onRetry={!isRetrying ? handleRetry : undefined} />
       ) : (
-        <div className="card mb-4">
-          <div className="card-body">
+        <div className="section-card progress-card">
             <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="badge text-bg-primary text-uppercase d-inline-flex align-items-center gap-1">
+              <span className={`status-badge status-${status} d-inline-flex align-items-center gap-1`}>
                 <IconClock /> {STATUS_LABELS[status] ?? status}
               </span>
               {isTransferring && typeof uploadProgress === "number" && (
@@ -302,31 +254,35 @@ export function UploadProgressPage() {
             {isTransferring && (
               <>
                 <div
-                  className="progress"
+                  className="progress progress-large"
                   role="progressbar"
                   aria-valuenow={uploadProgress}
                   aria-valuemin="0"
                   aria-valuemax="100"
-                  style={{ height: 10 }}
                 >
                   <div
                     className="progress-bar"
                     style={{ width: `${uploadProgress}%`, transition: "width 0.4s linear" }}
                   />
                 </div>
-                <div className="text-muted small mt-2">
+                <div className="progress-meta">
                   {formatBytes(bytesSent)} of {formatBytes(fileSize)}
                 </div>
               </>
             )}
 
             {isPostTransfer && !isCompleted && (
-              <p className="text-muted mb-0">
-                File transfer complete. OpenSpace is processing the capture.
-                {pendingSeen && " The capture has been observed in pendingCaptures. Waiting for OpenSpace processing to finish."}
-              </p>
+              <div className="processing-state">
+                <span className="spinner-border spinner-border-sm" aria-hidden="true" />
+                <div>
+                  <strong>File transfer complete</strong>
+                  <p>
+                    OpenSpace is processing the capture.
+                    {pendingSeen && " The capture has been observed in pendingCaptures and is waiting for processing to finish."}
+                  </p>
+                </div>
+              </div>
             )}
-          </div>
         </div>
       )}
 
@@ -341,7 +297,7 @@ export function UploadProgressPage() {
         <>
           <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="upload-complete-title">
             <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
+              <div className="modal-content complete-modal">
                 <div className="modal-header">
                   <h2 className="modal-title h5 text-primary d-flex align-items-center gap-2" id="upload-complete-title">
                     <IconCheckCircle className="text-success" />
@@ -349,20 +305,16 @@ export function UploadProgressPage() {
                   </h2>
                 </div>
                 <div className="modal-body">
+                  <div className="complete-icon" aria-hidden="true">✓</div>
                   <p className="text-muted">OpenSpace processing has been confirmed as complete.</p>
-                  <dl className="row mb-0">
-                    <dt className="col-4 text-muted small text-uppercase d-flex align-items-center gap-1"><IconFile /> File</dt>
-                    <dd className="col-8">{fileName ?? "-"}</dd>
-                    <dt className="col-4 text-muted small text-uppercase d-flex align-items-center gap-1"><IconBuilding /> Project</dt>
-                    <dd className="col-8">{projectName ?? "-"}</dd>
-                    <dt className="col-4 text-muted small text-uppercase d-flex align-items-center gap-1"><IconLayers /> Floor</dt>
-                    <dd className="col-8">{floorName ?? "-"}</dd>
-                    <dt className="col-4 text-muted small text-uppercase d-flex align-items-center gap-1"><IconDatabase /> File size</dt>
-                    <dd className="col-8">{formatBytes(fileSize)}</dd>
-                    <dt className="col-4 text-muted small text-uppercase">Status</dt>
-                    <dd className="col-8">
+                  <dl className="complete-details">
+                    <div><dt><IconFile /> File</dt><dd>{fileName ?? "-"}</dd></div>
+                    <div><dt><IconBuilding /> Project</dt><dd>{projectName ?? "-"}</dd></div>
+                    <div><dt><IconLayers /> Floor</dt><dd>{floorName ?? "-"}</dd></div>
+                    <div><dt><IconDatabase /> File size</dt><dd>{formatBytes(fileSize)}</dd></div>
+                    <div><dt>Status</dt><dd>
                       <span className="badge text-bg-success text-uppercase">{STATUS_LABELS[status]}</span>
-                    </dd>
+                    </dd></div>
                   </dl>
                 </div>
                 <div className="modal-footer flex-wrap">

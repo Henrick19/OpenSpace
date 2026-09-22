@@ -211,6 +211,37 @@ export const OPENAPI_DOCUMENT = {
         parameters: [{ $ref: "#/components/parameters/UploadId" }],
         responses: { 200: uploadResponse, 404: errorResponse },
       },
+      delete: {
+        tags: ["Uploads"],
+        summary: "Delete one local upload-history record",
+        description: "Deletes only a completed, failed or cancelled record from PSB's local SQLite database and removes any retained local INSV retry file. It does not delete or cancel a capture in OpenSpace.",
+        operationId: "deleteUploadHistory",
+        parameters: [{ $ref: "#/components/parameters/UploadId" }],
+        responses: {
+          204: { description: "Local history record deleted." },
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
+    },
+    "/api/uploads/{id}/remote-status": {
+      get: {
+        tags: ["Uploads"],
+        summary: "Check sanitized live OpenSpace diagnostic status",
+        description: "Queries OpenSpace from the Node.js backend. The submitted and attachedCaptureFiles fields are diagnostic-only, undocumented OpenSpace fields and must not be used as the production completion contract.",
+        operationId: "getRemoteUploadStatus",
+        parameters: [{ $ref: "#/components/parameters/UploadId" }],
+        responses: {
+          200: {
+            description: "Sanitized live diagnostic status. No credentials or raw capture-file details are returned.",
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/RemoteUploadStatus" } },
+            },
+          },
+          404: errorResponse,
+          502: errorResponse,
+        },
+      },
     },
     "/api/uploads/{id}/retry": {
       post: {
@@ -333,6 +364,21 @@ export const OPENAPI_DOCUMENT = {
           processingCompletedAt: { type: "string", format: "date-time", nullable: true },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      RemoteUploadStatus: {
+        type: "object",
+        required: ["uploadId", "captureId", "checkedAt", "pendingCapturePresent", "pendingSeenLocally", "completionInferred", "diagnosticOnly"],
+        properties: {
+          uploadId: { type: "string", format: "uuid" },
+          captureId: { type: "string" },
+          checkedAt: { type: "string", format: "date-time" },
+          pendingCapturePresent: { type: "boolean", description: "Whether the capture appears in the current OpenSpace pending list." },
+          submitted: { type: "boolean", nullable: true, description: "Diagnostic-only undocumented OpenSpace field." },
+          attachedCaptureFiles: { type: "integer", minimum: 0, nullable: true, description: "Diagnostic-only count; raw file details are not exposed." },
+          pendingSeenLocally: { type: "boolean" },
+          completionInferred: { type: "boolean", description: "True only when the capture was previously observed as pending and is now absent." },
+          diagnosticOnly: { type: "boolean", enum: [true] },
         },
       },
       PaginatedUploads: {

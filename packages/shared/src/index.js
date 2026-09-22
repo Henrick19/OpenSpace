@@ -12,6 +12,9 @@ export const UPLOAD_STATUSES = [
 // Dashboard records in these states as work currently in progress.
 export const ACTIVE_UPLOAD_STATUSES = ["staged", "uploading", "submitted", "processing"];
 
+// Uploads in these states no longer need frontend polling.
+export const TERMINAL_UPLOAD_STATUSES = ["completed", "failed", "cancelled"];
+
 // Default number of history rows returned when a page size is not supplied.
 export const DEFAULT_PAGE_SIZE = 10;
 

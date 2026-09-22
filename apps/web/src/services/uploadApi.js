@@ -20,4 +20,7 @@ export const uploadApi = {
   cancel(id) {
     return apiRequest(`/uploads/${id}/cancel`, { method: "POST" });
   },
+  remove(id) {
+    return apiRequest(`/uploads/${id}`, { method: "DELETE" });
+  },
 };

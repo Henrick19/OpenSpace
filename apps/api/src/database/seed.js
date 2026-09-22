@@ -33,7 +33,7 @@ const SHEETS = [
   {
     sheetId: "KdiCALU6QmSLTbirHJ_DFg",
     siteId: "3veiB-IWQeueTCR09xrR6g",
-    name: "L4 - Stem Wing",
+    name: "L4 - STEM Wing",
     createdDate: "2026-08-21",
     displayOrder: 3,
   },

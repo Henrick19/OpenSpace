@@ -10,12 +10,45 @@ export function formatDateTime(value) {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "_";
     return new Intl.DateTimeFormat("en-SG", {
-        dataStyle: "medium",
+        dateStyle: "medium",
         timeStyle: "short",
     }).format(date);
 }
 
 export function toLocalDateTimeInput(date = new Date()) {
     const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-    return adjusted.toISOString().slice(0,16);
+    return adjusted.toISOString().slice(0, 19);
+}
+
+/**
+ * Read the local capture date and time from an Insta360 filename such as
+ * VID_20260915_155527_00_018.insv. The returned value is suitable for a
+ * datetime-local input; timezone conversion happens only when the form submits.
+ */
+export function captureDateTimeFromFileName(fileName) {
+    const match = fileName.match(/^VID_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})(?:_|\.)/i);
+    if (!match) return null;
+
+    const [, year, month, day, hour, minute, second] = match;
+    const parts = [year, month, day, hour, minute, second].map(Number);
+    const [numericYear, numericMonth, numericDay, numericHour, numericMinute, numericSecond] = parts;
+    const candidate = new Date(Date.UTC(
+        numericYear,
+        numericMonth - 1,
+        numericDay,
+        numericHour,
+        numericMinute,
+        numericSecond,
+    ));
+
+    const isValid = candidate.getUTCFullYear() === numericYear
+        && candidate.getUTCMonth() === numericMonth - 1
+        && candidate.getUTCDate() === numericDay
+        && candidate.getUTCHours() === numericHour
+        && candidate.getUTCMinutes() === numericMinute
+        && candidate.getUTCSeconds() === numericSecond;
+
+    return isValid
+        ? `${year}-${month}-${day}T${hour}:${minute}:${second}`
+        : null;
 }

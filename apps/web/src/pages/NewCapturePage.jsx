@@ -6,7 +6,11 @@ import { PageHeading } from "../components/PageHeading.jsx";
 import { configApi } from "../services/configApi.js";
 import { projectApi } from "../services/projectApi.js";
 import { uploadApi } from "../services/uploadApi.js";
-import { formatBytes, toLocalDateTimeInput } from "../utils/format.js";
+import {
+  captureDateTimeFromFileName,
+  formatBytes,
+  toLocalDateTimeInput,
+} from "../utils/format.js";
 
 /** Validates capture metadata and sends one INSV file to the local Node.js API. */
 
@@ -18,6 +22,7 @@ export function NewCapturePage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [localProgress, setLocalProgress] = useState(0);
+  const [captureTimeDetected, setCaptureTimeDetected] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     siteId: "",
@@ -72,6 +77,23 @@ export function NewCapturePage() {
 
       return;
     }
+
+    if (name === "file") {
+      const file = files?.[0] ?? null;
+      const detectedDateTime = file
+        ? captureDateTimeFromFileName(file.name)
+        : null;
+
+      setCaptureTimeDetected(Boolean(detectedDateTime));
+      setForm((current) => ({
+        ...current,
+        file,
+        capturedAt: detectedDateTime ?? current.capturedAt,
+      }));
+      return;
+    }
+
+    if (name === "capturedAt") setCaptureTimeDetected(false);
 
     // Everything else:
     // normal input → store value
@@ -203,12 +225,18 @@ export function NewCapturePage() {
             <input
               className="form-control"
               type="datetime-local"
+              step="1"
               id="capturedAt"
               name="capturedAt"
               value={form.capturedAt}
               onChange={updateField}
               required
             />
+            <small className="form-text">
+              {captureTimeDetected
+                ? "Detected from the Insta360 filename. Verify the camera date and time before uploading."
+                : "Enter the actual recording start time, including seconds."}
+            </small>
           </div>
           <div className="grid-span-2">
             <label className="form-label" htmlFor="deviceId">

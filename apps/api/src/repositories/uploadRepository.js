@@ -138,6 +138,13 @@ export function createUploadRepository(database) {
     };
   }
 
+  function deleteById(id) {
+    const upload = findById(id, { includeLocalPath: true });
+    if (!upload) return null;
+    database.prepare("DELETE FROM uploads WHERE id = ?").run(id);
+    return upload;
+  }
+
   function updateTransferProgress(id, patch) {
     // This percentage represents Node.js-to-OpenSpace bytes, not processing progress.
     requireUpload(id);
@@ -250,6 +257,7 @@ export function createUploadRepository(database) {
 
   return {
     create,
+    deleteById,
     findById,
     getDashboardSummary,
     getRecent,
