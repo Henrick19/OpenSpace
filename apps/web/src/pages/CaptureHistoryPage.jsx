@@ -78,6 +78,7 @@ export function CaptureHistoryPage() {
   // The row waiting for the user to confirm a delete, then the one being deleted.
   const [confirmingId, setConfirmingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [deletedMessage, setDeletedMessage] = useState("");
 
   useEffect(() => {
     projectApi.list().then(setProjects).catch(() => setProjects([]));
@@ -166,6 +167,8 @@ export function CaptureHistoryPage() {
     try {
       await uploadApi.remove(uploadId);
       setConfirmingId(null);
+      setDeletedMessage("Removed from local history. The capture stays in OpenSpace.");
+      setTimeout(() => setDeletedMessage(""), 5000);
       // Step back a page when the last row of the final page has just gone.
       if (items.length === 1 && page > 1) setPage(page - 1);
       else setReloadKey((key) => key + 1);
@@ -237,6 +240,12 @@ export function CaptureHistoryPage() {
         </div>
       </div>
 
+      {deletedMessage && (
+        <div className="history-alert is-done" role="status">
+          <span>{deletedMessage}</span>
+        </div>
+      )}
+
       {problem && (
         <div className="history-alert" role="alert">
           <span>{problem}</span>
@@ -297,7 +306,7 @@ export function CaptureHistoryPage() {
                   <span className="history-action" onClick={(event) => event.stopPropagation()}>
                     {confirmingId === upload.id ? (
                       <span className="history-confirm" role="alertdialog" aria-label={`Delete ${upload.captureName} from history`}>
-                        <span>Delete?</span>
+                        <span>Remove from local history?</span>
                         <button type="button" autoFocus onClick={() => setConfirmingId(null)}>Nvm</button>
                         <button
                           type="button"
@@ -305,7 +314,7 @@ export function CaptureHistoryPage() {
                           disabled={deletingId === upload.id}
                           onClick={() => handleDelete(upload.id)}
                         >
-                          {deletingId === upload.id ? "Deleting" : "Delete"}
+                          {deletingId === upload.id ? "Deleting…" : "Delete"}
                         </button>
                       </span>
                     ) : (
@@ -327,7 +336,7 @@ export function CaptureHistoryPage() {
                             type="button"
                             className="history-delete"
                             aria-label={`Delete ${upload.captureName} from history`}
-                            title="Delete from local history"
+                            title="Remove this record from the local history. The capture stays in OpenSpace."
                             onClick={() => setConfirmingId(upload.id)}
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true"><path d="M4 7h16" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M6 7l1 13h10l1-13" /><path d="M9 7V4h6v3" /></svg>
