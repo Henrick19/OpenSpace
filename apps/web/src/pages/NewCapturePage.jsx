@@ -108,7 +108,7 @@ export function NewCapturePage() {
     event.preventDefault();
     setError("");
     if (!selectedProject?.canUpload) {
-      setError("The selected project has no configured floor sheet..");
+      setError("The selected project has no configured floor sheet.");
       return;
     }
     if (!form.file || !form.file.name.toLowerCase().endsWith(".insv")) {
@@ -143,138 +143,70 @@ export function NewCapturePage() {
     return <LoadingState message="Loading project and floor information…" />;
 
   return (
-    <div className="content-width form-width">
+    <div className="content-width form-width new-upload-page">
       <PageHeading
         title="Create new upload"
-        description="Select an approved local project and floor, then add one captured INSV file."
+        description="Prepare and submit one Insta360 capture through the secure local backend."
+        action={<button type="button" className="btn btn-primary" onClick={() => navigate("/catalogue")}>Manage projects</button>}
       />
       <div className="mode-notice">
-        <strong>{mode === "live" ? "Live mode" : "Mock mode"}.</strong> This MVP
-        uses the documented default start position <strong>[0, 0, 1.5]</strong>.
+        <span className={`mode-dot mode-${mode}`} aria-hidden="true" />
+        <div><strong>{mode === "live" ? "Live OpenSpace mode" : "Mock demonstration mode"}</strong><small>This upload uses the documented default start position [0, 0, 1.5].</small></div>
       </div>
       {error && <ErrorState message={error} />}
-      <form className="section-card capture-form" onSubmit={submit}>
-        <div className="form-grid">
-          <div>
-            <label className="form-label" htmlFor="siteId">
-              Project
-            </label>
-            <select
-              className="form-select"
-              id="siteId"
-              name="siteId"
-              value={form.siteId}
-              onChange={updateField}
-              required
-            >
-              {projects.length === 0 && (
-                <option value="">No projects configured</option>
-              )}
-              {projects.map((project) => (
-                <option value={project.siteId} key={project.siteId}>
-                  {project.name}
-                </option>
-              ))}
-            </select>
-            {selectedProject && (
-              <small className="form-text">{selectedProject.address}</small>
-            )}
+      <form className="capture-form" onSubmit={submit}>
+        <section className="section-card capture-step">
+          <div className="capture-step-heading"><span>1</span><div><h2>Capture destination</h2><p>Choose where this capture belongs and how it will appear.</p></div></div>
+          <div className="form-grid mb-0">
+            <div>
+              <label className="form-label" htmlFor="siteId">Project</label>
+              <select className="form-select" id="siteId" name="siteId" value={form.siteId} onChange={updateField} required>
+                {projects.length === 0 && <option value="">No projects configured</option>}
+                {projects.map((project) => <option value={project.siteId} key={project.siteId}>{project.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label" htmlFor="sheetId">Floor</label>
+              <select className="form-select" id="sheetId" name="sheetId" value={form.sheetId} onChange={updateField} disabled={!selectedProject?.canUpload} required>
+                {!selectedProject?.canUpload && <option value="">No floor sheets are configured</option>}
+                {selectedProject?.sheets.map((sheet) => <option value={sheet.sheetId} key={sheet.sheetId}>{sheet.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="form-label" htmlFor="captureName">Capture name</label>
+              <input className="form-control" id="captureName" name="captureName" value={form.captureName} onChange={updateField} placeholder="Morning inspection" maxLength="120" required />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="capturedAt">Capture date and time</label>
+              <input className="form-control" type="datetime-local" step="1" id="capturedAt" name="capturedAt" value={form.capturedAt} onChange={updateField} required />
+              <small className={`form-text${captureTimeDetected ? " detected-value" : ""}`}>
+                {captureTimeDetected ? "✓ Detected from the Insta360 filename. Please verify it." : "Enter the actual recording start time, including seconds."}
+              </small>
+            </div>
           </div>
-          <div>
-            <label className="form-label" htmlFor="sheetId">
-              Floor
-            </label>
-            <select
-              className="form-select"
-              id="sheetId"
-              name="sheetId"
-              value={form.sheetId}
-              onChange={updateField}
-              disabled={!selectedProject?.canUpload}
-              required
-            >
-              {!selectedProject?.canUpload && (
-                <option value="">No floor sheets are configured</option>
-              )}
-              {selectedProject?.sheets.map((sheet) => (
-                <option value={sheet.sheetId} key={sheet.sheetId}>
-                  {sheet.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="form-label" htmlFor="captureName">
-              Capture name
-            </label>
-            <input
-              className="form-control"
-              id="captureName"
-              name="captureName"
-              value={form.captureName}
-              onChange={updateField}
-              placeholder="Morning inspection"
-              maxLength="120"
-              required
-            />
-          </div>
-          <div>
-            <label className="form-label" htmlFor="capturedAt">
-              Capture date and time
-            </label>
-            <input
-              className="form-control"
-              type="datetime-local"
-              step="1"
-              id="capturedAt"
-              name="capturedAt"
-              value={form.capturedAt}
-              onChange={updateField}
-              required
-            />
-            <small className="form-text">
-              {captureTimeDetected
-                ? "Detected from the Insta360 filename. Verify the camera date and time before uploading."
-                : "Enter the actual recording start time, including seconds."}
-            </small>
-          </div>
-          <div className="grid-span-2">
-            <label className="form-label" htmlFor="deviceId">
-              Camera device ID
-            </label>
-            <input
-              className="form-control"
-              id="deviceId"
-              name="deviceId"
-              value={form.deviceId}
-              onChange={updateField}
-              placeholder="Insta360 x5:sn:SERIAL_NUMBER"
-              required
-            />
-            <small className="form-text">
-              Use the OpenSpace format CameraType:sn:SerialNumber.
-            </small>
-          </div>
-          <div className="grid-span-2 file-drop">
-            <label className="form-label" htmlFor="file">
-              INSV capture file
-            </label>
-            <input
-              className="form-control"
-              type="file"
-              id="file"
-              name="file"
-              accept=".insv"
-              onChange={updateField}
-              required
-            />
-            <small className="form-text">
-              {form.file
-                ? `${form.file.name} . ${formatBytes(form.file.size)}`
-                : "Choose the file copied from the camera. Camera transfer is outside this MVP."}
-            </small>
-          </div>
-        </div>
+        </section>
+
+        <section className="section-card capture-step">
+          <div className="capture-step-heading"><span>2</span><div><h2>Camera information</h2><p>Identify the Insta360 camera used for this recording.</p></div></div>
+          <label className="form-label" htmlFor="deviceId">Camera device ID</label>
+          <div className="input-with-prefix"><span aria-hidden="true">360°</span><input className="form-control" id="deviceId" name="deviceId" value={form.deviceId} onChange={updateField} placeholder="Insta360 X5:sn:SERIAL_NUMBER" required /></div>
+          <small className="form-text">Use the OpenSpace format CameraType:sn:SerialNumber.</small>
+        </section>
+
+        <section className="section-card capture-step">
+          <div className="capture-step-heading"><span>3</span><div><h2>Select capture file</h2><p>Add one INSV file copied from the camera.</p></div></div>
+          <input className="visually-hidden" type="file" id="file" name="file" accept=".insv" onChange={updateField} required />
+          <label className={`file-drop${form.file ? " has-file" : ""}`} htmlFor="file">
+            <span className="file-drop-icon" aria-hidden="true">{form.file ? "✓" : "⇧"}</span>
+            <span className="file-drop-copy">
+              <strong>{form.file ? form.file.name : "Choose an INSV capture file"}</strong>
+              <small>{form.file ? `${formatBytes(form.file.size)} · Click to choose a different file` : "Browse this computer · One .insv file only"}</small>
+            </span>
+            <span className="btn btn-outline-primary">{form.file ? "Replace file" : "Browse file"}</span>
+          </label>
+          <p className="capture-help">Camera-to-computer transfer is outside this MVP. Select the file after it has been copied locally.</p>
+        </section>
+
         {submitting && (
           <div className="local-transfer" role="status">
             <div className="d-flex justify-content-between">
@@ -289,12 +221,10 @@ export function NewCapturePage() {
             </div>
           </div>
         )}
-        <button
-          className="btn btn-primary btn-lg w-100"
-          disabled={submitting || !selectedProject?.canUpload}
-        >
-          {submitting ? "Preparing upload..." : "Upload capture"}
-        </button>
+        <div className="capture-submit-bar">
+          <div><strong>Ready to upload?</strong><span>The file is sent to your Node.js backend, never directly from the browser to OpenSpace.</span></div>
+          <button className="btn btn-primary btn-lg" disabled={submitting || !selectedProject?.canUpload}>{submitting ? "Preparing upload…" : "Upload capture"}</button>
+        </div>
       </form>
     </div>
   );

@@ -9,6 +9,7 @@ describe("PSB backend OpenAPI document", () => {
       "/api/dashboard/summary",
       "/api/health",
       "/api/projects",
+      "/api/projects/{siteId}/sheets",
       "/api/uploads",
       "/api/uploads/recent",
       "/api/uploads/statuses/values",

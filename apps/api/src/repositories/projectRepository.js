@@ -5,8 +5,6 @@ function mapSheet(row) {
     sheetId: row.sheet_id,
     siteId: row.site_id,
     name: row.name,
-    createdDate: row.created_date,
-    imagePath: row.image_path,
     defaultStartPosition: [row.default_start_x, row.default_start_y, row.default_start_z],
   };
 }
@@ -15,9 +13,7 @@ function mapProject(row, sheets) {
   return {
     siteId: row.site_id,
     name: row.name,
-    address: row.address,
     status: row.status,
-    createdDate: row.created_date,
     sheets,
     canUpload: sheets.length > 0,
   };
@@ -30,14 +26,8 @@ function mapProject(row, sheets) {
  * @param {import("better-sqlite3").Database} database
  */
 export function createProjectRepository(database) {
-  // Early MVP databases contain a required synced_at column. New databases do
-  // not need it, but these flags keep existing local catalogues writable.
-  const projectHasLegacySync = database.prepare("PRAGMA table_info(projects)")
-    .all().some((column) => column.name === "synced_at");
-  const sheetHasLegacySync = database.prepare("PRAGMA table_info(sheets)")
-    .all().some((column) => column.name === "synced_at");
   const listSheets = database.prepare(
-    "SELECT * FROM sheets WHERE site_id = ? ORDER BY display_order, name",
+    "SELECT * FROM sheets WHERE site_id = ? ORDER BY name",
   );
 
   function list({ includeInactive = false } = {}) {
@@ -59,17 +49,18 @@ export function createProjectRepository(database) {
     );
   }
 
-  function upsertProject({ siteId, name, address = null, createdDate = null }) {
+  function findSheetById(sheetId) {
+    return mapSheet(database.prepare("SELECT * FROM sheets WHERE sheet_id = ?").get(sheetId));
+  }
+
+  function upsertProject({ siteId, name }) {
     database.prepare(`
-      INSERT INTO projects (site_id, name, address, status, created_date${projectHasLegacySync ? ", synced_at" : ""})
-      VALUES (?, ?, ?, 'active', ?${projectHasLegacySync ? ", CURRENT_TIMESTAMP" : ""})
+      INSERT INTO projects (site_id, name, status)
+      VALUES (?, ?, 'active')
       ON CONFLICT(site_id) DO UPDATE SET
         name = excluded.name,
-        address = excluded.address,
-        created_date = COALESCE(excluded.created_date, projects.created_date),
-        ${projectHasLegacySync ? "synced_at = CURRENT_TIMESTAMP," : ""}
-        updated_at = CURRENT_TIMESTAMP
-    `).run(siteId, name, address, createdDate);
+        status = 'active'
+    `).run(siteId, name);
     return findBySiteId(siteId);
   }
 
@@ -77,35 +68,23 @@ export function createProjectRepository(database) {
     siteId,
     sheetId,
     name,
-    createdDate = null,
-    imagePath = null,
-    displayOrder = 0,
     defaultStartPosition = [0, 0, 1.5],
   }) {
     if (!findBySiteId(siteId)) throw new Error(`Project ${siteId} does not exist.`);
     database.prepare(`
       INSERT INTO sheets (
-        sheet_id, site_id, name, created_date, image_path, display_order,
-        default_start_x, default_start_y, default_start_z${sheetHasLegacySync ? ", synced_at" : ""}
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?${sheetHasLegacySync ? ", CURRENT_TIMESTAMP" : ""})
+        sheet_id, site_id, name, default_start_x, default_start_y, default_start_z
+      ) VALUES (?, ?, ?, ?, ?, ?)
       ON CONFLICT(sheet_id) DO UPDATE SET
         site_id = excluded.site_id,
         name = excluded.name,
-        created_date = COALESCE(excluded.created_date, sheets.created_date),
-        image_path = COALESCE(excluded.image_path, sheets.image_path),
-        display_order = excluded.display_order,
         default_start_x = excluded.default_start_x,
         default_start_y = excluded.default_start_y,
-        default_start_z = excluded.default_start_z,
-        ${sheetHasLegacySync ? "synced_at = CURRENT_TIMESTAMP," : ""}
-        updated_at = CURRENT_TIMESTAMP
+        default_start_z = excluded.default_start_z
     `).run(
       sheetId,
       siteId,
       name,
-      createdDate,
-      imagePath,
-      displayOrder,
       ...defaultStartPosition,
     );
     return findSheet(siteId, sheetId);
@@ -113,11 +92,27 @@ export function createProjectRepository(database) {
 
   function setProjectStatus(siteId, status) {
     const result = database.prepare(
-      "UPDATE projects SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE site_id = ?",
+      "UPDATE projects SET status = ? WHERE site_id = ?",
     ).run(status, siteId);
     if (!result.changes) throw new Error(`Project ${siteId} does not exist.`);
     return findBySiteId(siteId);
   }
 
-  return { findBySiteId, findSheet, list, setProjectStatus, upsertProject, upsertSheet };
+  // Save a new project and its optional first sheet as one SQLite transaction.
+  const createProjectWithOptionalSheet = database.transaction((project, sheet = null) => {
+    upsertProject(project);
+    if (sheet) upsertSheet({ ...sheet, siteId: project.siteId });
+    return findBySiteId(project.siteId);
+  });
+
+  return {
+    createProjectWithOptionalSheet,
+    findBySiteId,
+    findSheet,
+    findSheetById,
+    list,
+    setProjectStatus,
+    upsertProject,
+    upsertSheet,
+  };
 }

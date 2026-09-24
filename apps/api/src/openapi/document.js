@@ -87,6 +87,44 @@ export const OPENAPI_DOCUMENT = {
           },
         },
       },
+      post: {
+        tags: ["Projects"],
+        summary: "Add a project to the local catalogue",
+        description: "Stores an approved OpenSpace site ID in SQLite. An optional first floor can be saved in the same transaction.",
+        operationId: "createProject",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/CreateProject" },
+            },
+          },
+        },
+        responses: {
+          201: { description: "Project created.", content: { "application/json": { schema: { $ref: "#/components/schemas/Project" } } } },
+          400: errorResponse,
+          409: errorResponse,
+        },
+      },
+    },
+    "/api/projects/{siteId}/sheets": {
+      post: {
+        tags: ["Projects"],
+        summary: "Add a floor to an existing local project",
+        description: "Stores an approved OpenSpace sheet ID in SQLite with the documented default position [0, 0, 1.5].",
+        operationId: "createProjectSheet",
+        parameters: [{ name: "siteId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateSheet" } } },
+        },
+        responses: {
+          201: { description: "Floor created.", content: { "application/json": { schema: { $ref: "#/components/schemas/Sheet" } } } },
+          400: errorResponse,
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
     },
     "/api/dashboard/summary": {
       get: {
@@ -309,8 +347,6 @@ export const OPENAPI_DOCUMENT = {
           sheetId: { type: "string" },
           siteId: { type: "string" },
           name: { type: "string" },
-          createdDate: { type: "string", format: "date", nullable: true },
-          imagePath: { type: "string", nullable: true },
           defaultStartPosition: {
             type: "array",
             minItems: 3,
@@ -326,11 +362,26 @@ export const OPENAPI_DOCUMENT = {
         properties: {
           siteId: { type: "string" },
           name: { type: "string" },
-          address: { type: "string", nullable: true },
           status: { type: "string", enum: ["active", "inactive"] },
-          createdDate: { type: "string", format: "date", nullable: true },
           sheets: { type: "array", items: { $ref: "#/components/schemas/Sheet" } },
           canUpload: { type: "boolean", description: "True when at least one floor is configured." },
+        },
+      },
+      CreateSheet: {
+        type: "object",
+        required: ["sheetId", "name"],
+        properties: {
+          sheetId: { type: "string", description: "Sheet ID copied from the authorised OpenSpace web application." },
+          name: { type: "string", maxLength: 120, description: "Human-readable floor name." },
+        },
+      },
+      CreateProject: {
+        type: "object",
+        required: ["siteId", "name"],
+        properties: {
+          siteId: { type: "string", description: "Site ID copied from the authorised OpenSpace web application." },
+          name: { type: "string", maxLength: 120 },
+          firstSheet: { allOf: [{ $ref: "#/components/schemas/CreateSheet" }], nullable: true },
         },
       },
       Upload: {
