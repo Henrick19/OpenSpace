@@ -97,6 +97,21 @@ function IconClock(props) {
     </svg>
   );
 }
+function IconAlertTriangle(props) {
+  return (
+    <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor" {...props}>
+      <path d="M8.68 1.5c-.3-.5-1.06-.5-1.36 0L.34 13.5A.75.75 0 0 0 1 14.5h14a.75.75 0 0 0 .66-1L8.68 1.5zM8 5.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 5.5zm0 6.25a.9.9 0 1 1 0 1.8.9.9 0 0 1 0-1.8z" />
+    </svg>
+  );
+}
+function IconRefresh(props) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" {...props}>
+      <path d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z" />
+      <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z" />
+    </svg>
+  );
+}
 
 export function UploadProgressPage() {
   const { captureId } = useParams();
@@ -106,6 +121,7 @@ export function UploadProgressPage() {
   const [requestError, setRequestError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(true);
 
   const pollRef = useRef(null);
 
@@ -239,7 +255,49 @@ export function UploadProgressPage() {
 
       {/* Status card */}
       {isFailed ? (
-        <ErrorState message={errorMessage || "Upload failed."} onRetry={!isRetrying ? handleRetry : undefined} />
+        <div className="card border-danger mb-4">
+          <div className="card-body">
+            <div className="d-flex align-items-start gap-3">
+              <span className="d-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger flex-shrink-0" style={{ width: 44, height: 44 }}>
+                <IconAlertTriangle />
+              </span>
+              <div className="flex-grow-1">
+                <div className="d-flex align-items-center gap-2 mb-1">
+                  <h3 className="h6 mb-0 text-danger fw-bold">Upload failed</h3>
+                  <span className="badge text-bg-danger text-uppercase">{STATUS_LABELS[status] ?? status}</span>
+                </div>
+                <p className="text-muted mb-3">{errorMessage || "The upload could not be completed."}</p>
+                <button type="button" className="btn btn-danger btn-sm d-inline-flex align-items-center gap-1" onClick={handleRetry} disabled={isRetrying}>
+                  <IconRefresh /> {isRetrying ? "Retrying..." : "Retry upload"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : isCompleted ? (
+        <div className="card border-success mb-4">
+          <div className="card-body">
+            <div className="d-flex align-items-start gap-3 mb-3">
+              <span className="d-flex align-items-center justify-content-center rounded-circle bg-success-subtle text-success flex-shrink-0" style={{ width: 44, height: 44 }}>
+                <IconCheckCircle />
+              </span>
+              <div>
+                <h3 className="h6 mb-1 text-success fw-bold">Upload complete</h3>
+                <p className="text-muted mb-0">OpenSpace processing has been confirmed as complete.</p>
+              </div>
+            </div>
+            <div className="d-flex flex-wrap gap-2">
+              {viewerUrl && (
+                <a href={viewerUrl} target="_blank" rel="noreferrer" className="btn btn-success d-inline-flex align-items-center gap-1">
+                  <IconExternalLink /> Open in OpenSpace Singapore
+                </a>
+              )}
+              <button type="button" className="btn btn-outline-secondary d-inline-flex align-items-center gap-1" onClick={() => navigate("/captures")}>
+                <IconLayers /> View upload history
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
         <div className="section-card progress-card">
             <div className="d-flex justify-content-between align-items-center mb-2">
@@ -292,8 +350,8 @@ export function UploadProgressPage() {
         </div>
       )}
 
-      {/* Completion modal */}
-      {isCompleted && (
+      {/* Completion modal — simplified, closable, only the two primary actions */}
+      {isCompleted && isModalOpen && (
         <>
           <div className="modal d-block" tabIndex="-1" role="dialog" aria-modal="true" aria-labelledby="upload-complete-title">
             <div className="modal-dialog modal-dialog-centered">
@@ -303,6 +361,12 @@ export function UploadProgressPage() {
                     <IconCheckCircle className="text-success" />
                     Upload complete
                   </h2>
+                  <button
+                    type="button"
+                    className="btn-close"
+                    aria-label="Close"
+                    onClick={() => setIsModalOpen(false)}
+                  />
                 </div>
                 <div className="modal-body">
                   <div className="complete-icon" aria-hidden="true">✓</div>
@@ -317,26 +381,18 @@ export function UploadProgressPage() {
                     </dd></div>
                   </dl>
                 </div>
-                <div className="modal-footer flex-wrap">
-                  {viewerUrl && (
-                    <a href={viewerUrl} target="_blank" rel="noreferrer" className="btn btn-primary d-inline-flex align-items-center gap-1">
-                      <IconExternalLink /> Open in OpenSpace Singapore
-                    </a>
-                  )}
+                <div className="modal-footer">
                   <button type="button" className="btn btn-outline-primary d-inline-flex align-items-center gap-1" onClick={() => navigate("/captures/new")}>
                     <IconUploadCloud /> Upload again
                   </button>
-                  <button type="button" className="btn btn-outline-secondary d-inline-flex align-items-center gap-1" onClick={() => navigate("/dashboard")}>
+                  <button type="button" className="btn btn-primary d-inline-flex align-items-center gap-1" onClick={() => navigate("/dashboard")}>
                     <IconHome /> Back to dashboard
-                  </button>
-                  <button type="button" className="btn btn-outline-secondary d-inline-flex align-items-center gap-1" onClick={() => navigate("/captures")}>
-                    <IconLayers /> View upload history
                   </button>
                 </div>
               </div>
             </div>
           </div>
-          <div className="modal-backdrop show" />
+          <div className="modal-backdrop show" onClick={() => setIsModalOpen(false)} />
         </>
       )}
     </div>
