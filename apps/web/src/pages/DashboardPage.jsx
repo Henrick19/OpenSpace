@@ -116,6 +116,12 @@ function ReuseCard(card) {
   );
 }
 
+function uploadActionLabel(status) {
+  if (status === "completed") return "View summary";
+  if (status === "failed") return "View error";
+  return "Track";
+}
+
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -191,7 +197,7 @@ export function DashboardPage() {
 
 
       {/* Refresh and Last Updated */}
-      <div className="d-flex justify-content-end align-items-center gap-3 mb-3">
+      <div className="dashboard-refresh">
 
         <span className="text-muted small">
           {lastUpdated
@@ -272,7 +278,7 @@ export function DashboardPage() {
 
       {/* Recent Uploads Table */}
       {summary.recentUploads.length > 0 && (
-        <div className="table-responsive">
+        <div className="table-responsive dashboard-table-card">
 
           <table className="table data-table align-middle">
 
@@ -316,10 +322,10 @@ export function DashboardPage() {
 
                     <button
                       type="button"
-                      className="btn btn-sm btn-outline-primary"
+                      className={`btn btn-sm dashboard-action dashboard-action-${upload.status}`}
                       onClick={() => setSelectedUpload(upload)}
                     >
-                      Details
+                      {uploadActionLabel(upload.status)}
                     </button>
 
                   </td>
@@ -418,14 +424,14 @@ export function DashboardPage() {
 
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className={`btn dashboard-action dashboard-action-${selectedUpload.status}`}
                     onClick={() =>
                       navigate(
                         `/captures/${selectedUpload.id}/progress`
                       )
                     }
                   >
-                    View Progress
+                    {uploadActionLabel(selectedUpload.status)}
                   </button>
 
                 </div>

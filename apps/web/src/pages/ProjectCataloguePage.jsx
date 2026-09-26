@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { LoadingState } from "../components/FeedbackState.jsx";
+import { EmptyState, ErrorState, LoadingState } from "../components/FeedbackState.jsx";
 import { PageHeading } from "../components/PageHeading.jsx";
 import { cameraApi } from "../services/cameraApi.js";
 import { projectApi } from "../services/projectApi.js";
@@ -170,7 +170,7 @@ export function ProjectCataloguePage() {
         </button>
       </div>
 
-      {error && <div className="alert alert-danger" role="alert">{error}</div>}
+      {error && <ErrorState message={error} onRetry={loadProjects} />}
       {success && <div className="alert alert-success" role="status">{success}</div>}
 
       {activeForm === "project" ? (
@@ -258,7 +258,9 @@ export function ProjectCataloguePage() {
       <section className="catalogue-overview" aria-label="Current local catalogue">
         <div className="section-card-heading"><div><h2>Current catalogue</h2><p>{projects.length} active project{projects.length === 1 ? "" : "s"} stored locally.</p></div><button className="btn btn-outline-secondary" onClick={loadProjects}>Refresh</button></div>
         <div className="catalogue-projects">
-          {projects.map((project) => (
+          {projects.length === 0 ? (
+            <EmptyState title="No projects configured" description="Add an approved OpenSpace project to make it available for uploads." />
+          ) : projects.map((project) => (
             <article className="catalogue-project" key={project.siteId}>
               <div><h3>{project.name}</h3><code>{project.siteId}</code></div>
               <div className="catalogue-sheet-list">
@@ -274,7 +276,7 @@ export function ProjectCataloguePage() {
       <section className="catalogue-overview" aria-label="Current camera catalogue">
         <div className="section-card-heading"><div><h2>Current cameras</h2><p>{cameras.length} active camera{cameras.length === 1 ? "" : "s"} available for upload.</p></div><button className="btn btn-outline-secondary" onClick={loadProjects}>Refresh</button></div>
         <div className="catalogue-cameras">
-          {cameras.length === 0 ? <span className="empty-sheet">No cameras configured</span> : cameras.map((camera) => (
+          {cameras.length === 0 ? <EmptyState title="No cameras configured" description="Add an approved camera to make it selectable on the New Upload page." /> : cameras.map((camera) => (
             <article className="catalogue-camera" key={camera.deviceId}>
               <div><h3>{camera.displayName}</h3><span>{camera.model}</span></div>
               <code>{camera.deviceId}</code>

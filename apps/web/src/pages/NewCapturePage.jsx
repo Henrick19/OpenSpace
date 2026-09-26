@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { ErrorState, LoadingState } from "../components/FeedbackState.jsx";
@@ -35,28 +35,36 @@ export function NewCapturePage() {
     file: null,
   });
 
-  useEffect(() => {
-    Promise.all([projectApi.list(), cameraApi.list(), configApi.get()])
-      .then(([projectItems, cameraItems, config]) => {
-        setProjects(projectItems);
-        setCameras(cameraItems);
-        setMode(config.openSpaceMode);
-        setMaximumUploadBytes(config.maximumUploadBytes);
-        const firstAvailable = projectItems.find(
-          (project) => project.canUpload,
-        );
-        setForm((current) => ({
-          ...current,
-          siteId: firstAvailable?.siteId ?? "",
-          sheetId: firstAvailable?.sheets[0]?.sheetId ?? "",
-          deviceId: cameraItems.some((camera) => camera.deviceId === config.defaultDeviceId)
-            ? config.defaultDeviceId
-            : (cameraItems[0]?.deviceId ?? ""),
-        }));
-      })
-      .catch((requestError) => setError(requestError.message))
-      .finally(() => setLoading(false));
+  const loadOptions = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [projectItems, cameraItems, config] = await Promise.all([
+        projectApi.list(),
+        cameraApi.list(),
+        configApi.get(),
+      ]);
+      setProjects(projectItems);
+      setCameras(cameraItems);
+      setMode(config.openSpaceMode);
+      setMaximumUploadBytes(config.maximumUploadBytes);
+      const firstAvailable = projectItems.find((project) => project.canUpload);
+      setForm((current) => ({
+        ...current,
+        siteId: firstAvailable?.siteId ?? "",
+        sheetId: firstAvailable?.sheets[0]?.sheetId ?? "",
+        deviceId: cameraItems.some((camera) => camera.deviceId === config.defaultDeviceId)
+          ? config.defaultDeviceId
+          : (cameraItems[0]?.deviceId ?? ""),
+      }));
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { loadOptions(); }, [loadOptions]);
 
   const selectedProject = useMemo(
     () => projects.find((project) => project.siteId === form.siteId),
@@ -148,8 +156,11 @@ export function NewCapturePage() {
     }
   }
 
-  if (loading)
-    return <LoadingState message="Loading project, floor and camera information…" />;
+  if (loading) return <LoadingState message="Loading project, floor and camera information…" />;
+
+  if (error && projects.length === 0 && cameras.length === 0) {
+    return <ErrorState message={error} onRetry={loadOptions} />;
+  }
 
   return (
     <div className="content-width form-width new-upload-page">
@@ -197,13 +208,13 @@ export function NewCapturePage() {
 
         <section className="section-card capture-step">
           <div className="capture-step-heading"><span>2</span><div><h2>Camera information</h2><p>Identify the Insta360 camera used for this recording.</p></div></div>
-          <label className="form-label" htmlFor="deviceId">Camera device ID</label>
+          <label className="form-label" htmlFor="deviceId">Camera</label>
           <select className="form-select" id="deviceId" name="deviceId" value={form.deviceId} onChange={updateField} required disabled={cameras.length === 0}>
             {cameras.length === 0 && <option value="">No cameras configured</option>}
             {cameras.map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.displayName}</option>)}
           </select>
-          <small className="form-text code-text">
-            {form.deviceId || "Add an approved camera in Manage catalogue before uploading."}
+          <small className="form-text">
+            {form.deviceId ? <><strong>OpenSpace device ID:</strong> <code className="code-text">{form.deviceId}</code></> : "Add an approved camera in Manage catalogue before uploading."}
           </small>
         </section>
 

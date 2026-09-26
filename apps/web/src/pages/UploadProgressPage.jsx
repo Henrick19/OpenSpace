@@ -16,10 +16,12 @@ const TERMINAL_STATUSES = new Set(TERMINAL_UPLOAD_STATUSES);
  * submitted / processing / completed all count as "OpenSpace processing" (stage 3)
  * once the file transfer itself has finished.
  */
-function getStage(status) {
+function getStage({ status, uploadProgress, pendingSeen }) {
   if (status === "staged") return 1;
   if (status === "uploading") return 2;
   if (status === "submitted" || status === "processing" || status === "completed") return 3;
+  if (status === "failed" && pendingSeen) return 3;
+  if (status === "failed" && uploadProgress > 0) return 2;
   return 1;
 }
 
@@ -222,7 +224,7 @@ export function UploadProgressPage() {
   const isTransferring = status === "uploading";
   const isPostTransfer = status === "submitted" || status === "processing";
   const isCompleted = status === "completed";
-  const activeStage = getStage(status);
+  const activeStage = getStage(upload);
 
   return (
     <div className="content-width form-width">

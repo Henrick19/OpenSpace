@@ -73,6 +73,7 @@ export function CaptureHistoryPage() {
   const [page, setPage] = useState(1);
   const [reloadKey, setReloadKey] = useState(0);
   const [projects, setProjects] = useState([]);
+  const [projectError, setProjectError] = useState("");
   const [retryingId, setRetryingId] = useState(null);
   const [retryError, setRetryError] = useState("");
   // The row waiting for the user to confirm a delete, then the one being deleted.
@@ -80,9 +81,17 @@ export function CaptureHistoryPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [deletedMessage, setDeletedMessage] = useState("");
 
-  useEffect(() => {
-    projectApi.list().then(setProjects).catch(() => setProjects([]));
+  const loadProjects = useCallback(async () => {
+    try {
+      setProjects(await projectApi.list());
+      setProjectError("");
+    } catch (requestError) {
+      setProjects([]);
+      setProjectError(`Project filter unavailable. ${requestError.message}`);
+    }
   }, []);
+
+  useEffect(() => { loadProjects(); }, [loadProjects]);
 
   // Wait until typing pauses before sending the search to the backend.
   useEffect(() => {
@@ -185,7 +194,7 @@ export function CaptureHistoryPage() {
   const firstRow = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const lastRow = Math.min(page * pageSize, total);
   const isFiltered = searchText !== "" || Object.values(filters).some((value) => value !== "");
-  const problem = retryError || (error && `Could not load uploads. ${error}`);
+  const problem = retryError || projectError || (error && `Could not load uploads. ${error}`);
 
   return (
     <div className="history content-width">
@@ -249,7 +258,7 @@ export function CaptureHistoryPage() {
       {problem && (
         <div className="history-alert" role="alert">
           <span>{problem}</span>
-          <button type="button" onClick={() => { setRetryError(""); setReloadKey((key) => key + 1); }}>Try again</button>
+          <button type="button" onClick={() => { setRetryError(""); loadProjects(); setReloadKey((key) => key + 1); }}>Try again</button>
         </div>
       )}
 
@@ -307,7 +316,7 @@ export function CaptureHistoryPage() {
                     {confirmingId === upload.id ? (
                       <span className="history-confirm" role="alertdialog" aria-label={`Delete ${upload.captureName} from history`}>
                         <span>Remove from local history?</span>
-                        <button type="button" autoFocus onClick={() => setConfirmingId(null)}>Nvm</button>
+                        <button type="button" autoFocus onClick={() => setConfirmingId(null)}>Cancel</button>
                         <button
                           type="button"
                           className="is-delete"
