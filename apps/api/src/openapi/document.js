@@ -32,6 +32,7 @@ export const OPENAPI_DOCUMENT = {
   servers: [{ url: "http://localhost:8787", description: "Local Node.js backend" }],
   tags: [
     { name: "System", description: "Backend health and safe frontend configuration." },
+    { name: "Cameras", description: "PSB-maintained physical camera catalogue." },
     { name: "Projects", description: "PSB-maintained project and floor catalogue." },
     { name: "Dashboard", description: "Upload totals and recent activity." },
     { name: "Uploads", description: "INSV intake, history, status, retry and cancellation." },
@@ -61,6 +62,43 @@ export const OPENAPI_DOCUMENT = {
             description: "Safe runtime settings.",
             content: { "application/json": { schema: { $ref: "#/components/schemas/Config" } } },
           },
+        },
+      },
+    },
+    "/api/cameras": {
+      get: {
+        tags: ["Cameras"],
+        summary: "List approved cameras",
+        description: "Populates the New Upload camera dropdown from the shared SQLite catalogue.",
+        operationId: "listCameras",
+        responses: {
+          200: {
+            description: "Active physical cameras.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["items"],
+                  properties: { items: { type: "array", items: { $ref: "#/components/schemas/Camera" } } },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ["Cameras"],
+        summary: "Add a camera to the local catalogue",
+        description: "Stores one approved physical camera identity for future uploads.",
+        operationId: "createCamera",
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/CreateCamera" } } },
+        },
+        responses: {
+          201: { description: "Camera created.", content: { "application/json": { schema: { $ref: "#/components/schemas/Camera" } } } },
+          400: errorResponse,
+          409: errorResponse,
         },
       },
     },
@@ -180,7 +218,7 @@ export const OPENAPI_DOCUMENT = {
                   siteId: { type: "string", description: "Selected project ID from GET /api/projects." },
                   sheetId: { type: "string", description: "Selected floor/sheet ID belonging to the project." },
                   captureName: { type: "string", maxLength: 120 },
-                  deviceId: { type: "string", example: "Insta360 OneX5:sn:SERIAL_NUMBER" },
+                  deviceId: { type: "string", description: "Selected device ID from GET /api/cameras.", example: "Insta360 X5:sn:SERIAL_NUMBER" },
                   capturedAt: { type: "string", format: "date-time" },
                   file: { type: "string", format: "binary", description: "One `.insv` file." },
                 },
@@ -338,6 +376,25 @@ export const OPENAPI_DOCUMENT = {
           openSpaceMode: { type: "string", enum: ["mock", "live"] },
           defaultDeviceId: { type: "string" },
           maximumUploadBytes: { type: "integer", format: "int64" },
+        },
+      },
+      Camera: {
+        type: "object",
+        required: ["deviceId", "displayName", "model", "serialNumber", "status"],
+        properties: {
+          deviceId: { type: "string", example: "Insta360 X5:sn:SERIAL_NUMBER" },
+          displayName: { type: "string", example: "Insta360 X5 – Lab camera" },
+          model: { type: "string", example: "Insta360 X5" },
+          serialNumber: { type: "string", example: "SERIAL_NUMBER" },
+          status: { type: "string", enum: ["active", "inactive"] },
+        },
+      },
+      CreateCamera: {
+        type: "object",
+        required: ["deviceId", "displayName"],
+        properties: {
+          deviceId: { type: "string", pattern: "^.+:sn:.+$" },
+          displayName: { type: "string", maxLength: 120 },
         },
       },
       Sheet: {

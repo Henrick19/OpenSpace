@@ -5,6 +5,7 @@ import { OPENAPI_DOCUMENT } from "./document.js";
 describe("PSB backend OpenAPI document", () => {
   it("documents every public MVP backend path", () => {
     expect(Object.keys(OPENAPI_DOCUMENT.paths).sort()).toEqual([
+      "/api/cameras",
       "/api/config",
       "/api/dashboard/summary",
       "/api/health",

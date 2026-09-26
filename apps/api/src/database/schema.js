@@ -20,6 +20,15 @@ export const INITIAL_SCHEMA = `
     FOREIGN KEY (site_id) REFERENCES projects(site_id) ON DELETE CASCADE
   );
 
+  -- Physical cameras approved for new OpenSpace capture uploads.
+  CREATE TABLE IF NOT EXISTS cameras (
+    device_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    model TEXT NOT NULL,
+    serial_number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive'))
+  );
+
   -- Uploads record local transfer, OpenSpace processing and retry information.
   CREATE TABLE IF NOT EXISTS uploads (
     id TEXT PRIMARY KEY,
@@ -60,6 +69,7 @@ export const INITIAL_SCHEMA = `
 
   -- Indexes support dropdown, dashboard, history and processing-status queries.
   CREATE INDEX IF NOT EXISTS idx_sheets_site ON sheets(site_id);
+  CREATE INDEX IF NOT EXISTS idx_cameras_status ON cameras(status);
   CREATE INDEX IF NOT EXISTS idx_uploads_status ON uploads(status);
   CREATE INDEX IF NOT EXISTS idx_uploads_site ON uploads(site_id);
   CREATE INDEX IF NOT EXISTS idx_uploads_captured ON uploads(captured_at);

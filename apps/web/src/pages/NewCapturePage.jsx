@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { ErrorState, LoadingState } from "../components/FeedbackState.jsx";
 import { PageHeading } from "../components/PageHeading.jsx";
+import { cameraApi } from "../services/cameraApi.js";
 import { configApi } from "../services/configApi.js";
 import { projectApi } from "../services/projectApi.js";
 import { uploadApi } from "../services/uploadApi.js";
@@ -17,6 +18,7 @@ import {
 export function NewCapturePage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
+  const [cameras, setCameras] = useState([]);
   const [mode, setMode] = useState("mock");
   const [maximumUploadBytes, setMaximumUploadBytes] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -34,9 +36,10 @@ export function NewCapturePage() {
   });
 
   useEffect(() => {
-    Promise.all([projectApi.list(), configApi.get()])
-      .then(([projectItems, config]) => {
+    Promise.all([projectApi.list(), cameraApi.list(), configApi.get()])
+      .then(([projectItems, cameraItems, config]) => {
         setProjects(projectItems);
+        setCameras(cameraItems);
         setMode(config.openSpaceMode);
         setMaximumUploadBytes(config.maximumUploadBytes);
         const firstAvailable = projectItems.find(
@@ -46,7 +49,9 @@ export function NewCapturePage() {
           ...current,
           siteId: firstAvailable?.siteId ?? "",
           sheetId: firstAvailable?.sheets[0]?.sheetId ?? "",
-          deviceId: config.defaultDeviceId ?? "",
+          deviceId: cameraItems.some((camera) => camera.deviceId === config.defaultDeviceId)
+            ? config.defaultDeviceId
+            : (cameraItems[0]?.deviceId ?? ""),
         }));
       })
       .catch((requestError) => setError(requestError.message))
@@ -115,6 +120,10 @@ export function NewCapturePage() {
       setError("Select one INSV capture file.");
       return;
     }
+    if (!form.deviceId) {
+      setError("Select a camera from the local catalogue.");
+      return;
+    }
     if (maximumUploadBytes && form.file.size > maximumUploadBytes) {
       setError(
         `The selected file exceeds the local ${formatBytes(maximumUploadBytes)} size limit.`,
@@ -140,14 +149,14 @@ export function NewCapturePage() {
   }
 
   if (loading)
-    return <LoadingState message="Loading project and floor information…" />;
+    return <LoadingState message="Loading project, floor and camera information…" />;
 
   return (
     <div className="content-width form-width new-upload-page">
       <PageHeading
         title="Create new upload"
         description="Prepare and submit one Insta360 capture through the secure local backend."
-        action={<button type="button" className="btn btn-primary" onClick={() => navigate("/catalogue")}>Manage projects</button>}
+        action={<button type="button" className="btn btn-primary" onClick={() => navigate("/catalogue")}>Manage catalogue</button>}
       />
       <div className="mode-notice">
         <span className={`mode-dot mode-${mode}`} aria-hidden="true" />
@@ -189,8 +198,13 @@ export function NewCapturePage() {
         <section className="section-card capture-step">
           <div className="capture-step-heading"><span>2</span><div><h2>Camera information</h2><p>Identify the Insta360 camera used for this recording.</p></div></div>
           <label className="form-label" htmlFor="deviceId">Camera device ID</label>
-          <div className="input-with-prefix"><span aria-hidden="true">360°</span><input className="form-control" id="deviceId" name="deviceId" value={form.deviceId} onChange={updateField} placeholder="Insta360 X5:sn:SERIAL_NUMBER" required /></div>
-          <small className="form-text">Use the OpenSpace format CameraType:sn:SerialNumber.</small>
+          <select className="form-select" id="deviceId" name="deviceId" value={form.deviceId} onChange={updateField} required disabled={cameras.length === 0}>
+            {cameras.length === 0 && <option value="">No cameras configured</option>}
+            {cameras.map((camera) => <option value={camera.deviceId} key={camera.deviceId}>{camera.displayName}</option>)}
+          </select>
+          <small className="form-text code-text">
+            {form.deviceId || "Add an approved camera in Manage catalogue before uploading."}
+          </small>
         </section>
 
         <section className="section-card capture-step">
@@ -223,7 +237,7 @@ export function NewCapturePage() {
         )}
         <div className="capture-submit-bar">
           <div><strong>Ready to upload?</strong><span>The file is sent to your Node.js backend, never directly from the browser to OpenSpace.</span></div>
-          <button className="btn btn-primary btn-lg" disabled={submitting || !selectedProject?.canUpload}>{submitting ? "Preparing upload…" : "Upload capture"}</button>
+          <button className="btn btn-primary btn-lg" disabled={submitting || !selectedProject?.canUpload || !form.deviceId}>{submitting ? "Preparing upload…" : "Upload capture"}</button>
         </div>
       </form>
     </div>

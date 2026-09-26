@@ -30,6 +30,14 @@ npm run dev
 
 Open `http://localhost:5173`. Vite forwards `/api` requests to the local service at `http://localhost:8787`. SQLite is created automatically at `apps/api/data/database/openspace.sqlite`; it is ignored by Git.
 
+### Share one local database on trusted Wi-Fi
+
+`npm run dev` exposes the Vite frontend on the host laptop's local network while the credential-bearing Node.js service remains bound to that laptop. Teammates connected to the same trusted Wi-Fi open the **Network** address printed by Vite, for example `http://192.168.1.25:5173`.
+
+Every browser then uses the host laptop's Node.js backend and single SQLite database through Vite's `/api` proxy. Projects, floors, cameras and upload history are therefore shared. Only the host laptop needs `apps/api/.env`; do not copy OpenSpace credentials to frontend-only machines.
+
+Keep the host laptop awake, keep `npm run dev` running, and allow incoming Node.js connections if macOS asks. Use this only on a trusted private network. Stop the development server before joining public Wi-Fi.
+
 Interactive PSB backend documentation is available at `http://localhost:8787/api/docs`. The raw OpenAPI document is available at `http://localhost:8787/api/docs/openapi.json`. These pages document only PSB-owned endpoints; private OpenSpace endpoints and credentials are excluded.
 
 The actual `apps/api/.env` file is local and ignored by Git. New developers leave it in mock mode. Only an authorised backend integration developer may add the real OpenSpace client ID and secret. Never add secrets to a `VITE_` variable because Vite exposes those values to browser code.

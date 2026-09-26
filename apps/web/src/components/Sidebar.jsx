@@ -5,7 +5,7 @@ const links = [
   { to: "/dashboard", label: "Dashboard", icon: "▦" },
   { to: "/captures/new", label: "New upload", icon: "+" },
   { to: "/captures", label: "Upload history", icon: "↻" },
-  { to: "/catalogue", label: "Project catalogue", icon: "▤" },
+  { to: "/catalogue", label: "Catalogue", icon: "▤" },
 ];
 
 /** Persistent application navigation shared by every routed page. */

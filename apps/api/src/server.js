@@ -9,7 +9,9 @@ const environment = loadEnvironment();
 const database = createDatabase(environment.databasePath);
 const { app, coordinator } = createApp({ database, environment });
 
-const server = app.listen(environment.port, () => {
+// Keep the credential-bearing backend on the host laptop. Vite is the only
+// LAN-facing service and proxies browser /api requests to this loopback port.
+const server = app.listen(environment.port, "127.0.0.1", () => {
   console.log(`OpenSpace local API listening on http://localhost:${environment.port}`);
   console.log(`OpenSpace integration mode: ${environment.openSpace.mode}`);
   coordinator.resumeProcessingChecks();

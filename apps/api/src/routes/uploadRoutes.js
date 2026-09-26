@@ -36,6 +36,7 @@ function cleanFileName(name) {
 export function createUploadRouter({
   uploadRepository,
   projectRepository,
+  cameraRepository,
   coordinator,
   environment,
 }) {
@@ -136,6 +137,11 @@ export function createUploadRouter({
           removeUploadedFile(request.file);
           return response.status(400).json({ message: "The selected project and floor do not match." });
         }
+        const camera = cameraRepository.findByDeviceId(parsed.data.deviceId);
+        if (!camera || camera.status !== "active") {
+          removeUploadedFile(request.file);
+          return response.status(400).json({ message: "Select an active camera from the local catalogue." });
+        }
         const capturedAt = new Date(parsed.data.capturedAt);
         // Persist metadata and the documented default start before returning 202.
         const upload = uploadRepository.create({
@@ -144,7 +150,7 @@ export function createUploadRouter({
           sheetId: sheet.sheetId,
           floorName: sheet.name,
           captureName: parsed.data.captureName,
-          deviceId: parsed.data.deviceId,
+          deviceId: camera.deviceId,
           fileName: cleanFileName(request.file.originalname),
           localFilePath: request.file.path,
           fileSize: request.file.size,

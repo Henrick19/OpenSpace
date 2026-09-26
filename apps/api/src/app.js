@@ -4,9 +4,11 @@ import multer from "multer";
 import swaggerUi from "swagger-ui-express";
 
 import { OPENAPI_DOCUMENT } from "./openapi/document.js";
+import { createCameraRepository } from "./repositories/cameraRepository.js";
 import { createProjectRepository } from "./repositories/projectRepository.js";
 import { createUploadRepository } from "./repositories/uploadRepository.js";
 import { createDashboardRouter } from "./routes/dashboardRoutes.js";
+import { createCameraRouter } from "./routes/cameraRoutes.js";
 import { createProjectRouter } from "./routes/projectRoutes.js";
 import { createUploadRouter } from "./routes/uploadRoutes.js";
 import { createUploadCoordinator } from "./services/uploadCoordinator.js";
@@ -20,9 +22,11 @@ import { createUploadCoordinator } from "./services/uploadCoordinator.js";
  */
 export function createApp({ database, environment }) {
   const app = express();
+  const cameraRepository = createCameraRepository(database);
   const projectRepository = createProjectRepository(database);
   const uploadRepository = createUploadRepository(database);
   const coordinator = createUploadCoordinator({ uploadRepository, environment });
+  cameraRepository.ensureDefault(environment.defaultDeviceId);
 
   // Apply common security, cross-origin and JSON parsing rules before any route.
   app.disable("x-powered-by");
@@ -62,11 +66,13 @@ export function createApp({ database, environment }) {
     }),
   );
   // Feature routers receive only the dependencies they are allowed to use.
+  app.use("/api/cameras", createCameraRouter(cameraRepository));
   app.use("/api/projects", createProjectRouter(projectRepository));
   app.use("/api/dashboard", createDashboardRouter(uploadRepository));
   app.use("/api/uploads", createUploadRouter({
     uploadRepository,
     projectRepository,
+    cameraRepository,
     coordinator,
     environment,
   }));

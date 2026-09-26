@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { LoadingState } from "../components/FeedbackState.jsx";
 import { PageHeading } from "../components/PageHeading.jsx";
+import { cameraApi } from "../services/cameraApi.js";
 import { projectApi } from "../services/projectApi.js";
 
 const EMPTY_PROJECT = {
@@ -13,13 +14,16 @@ const EMPTY_PROJECT = {
 };
 
 const EMPTY_SHEET = { siteId: "", sheetId: "", name: "" };
+const EMPTY_CAMERA = { deviceId: "", displayName: "" };
 
 /** Local administration page for approved OpenSpace project and floor IDs. */
 export function ProjectCataloguePage() {
   const [projects, setProjects] = useState([]);
+  const [cameras, setCameras] = useState([]);
   const [activeForm, setActiveForm] = useState("project");
   const [projectForm, setProjectForm] = useState(EMPTY_PROJECT);
   const [sheetForm, setSheetForm] = useState(EMPTY_SHEET);
+  const [cameraForm, setCameraForm] = useState(EMPTY_CAMERA);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -27,13 +31,14 @@ export function ProjectCataloguePage() {
 
   const loadProjects = useCallback(async () => {
     try {
-      const items = await projectApi.list();
-      setProjects(items);
+      const [projectItems, cameraItems] = await Promise.all([projectApi.list(), cameraApi.list()]);
+      setProjects(projectItems);
+      setCameras(cameraItems);
       setSheetForm((current) => ({
         ...current,
-        siteId: items.some((project) => project.siteId === current.siteId)
+        siteId: projectItems.some((project) => project.siteId === current.siteId)
           ? current.siteId
-          : (items[0]?.siteId ?? ""),
+          : (projectItems[0]?.siteId ?? ""),
       }));
     } catch (requestError) {
       setError(requestError.message);
@@ -57,6 +62,11 @@ export function ProjectCataloguePage() {
   function updateSheet(event) {
     const { name, value } = event.target;
     setSheetForm((current) => ({ ...current, [name]: value }));
+  }
+
+  function updateCamera(event) {
+    const { name, value } = event.target;
+    setCameraForm((current) => ({ ...current, [name]: value }));
   }
 
   function switchForm(nextForm) {
@@ -111,20 +121,40 @@ export function ProjectCataloguePage() {
     }
   }
 
+  async function addCamera(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    try {
+      await cameraApi.create({
+        deviceId: cameraForm.deviceId.trim(),
+        displayName: cameraForm.displayName.trim(),
+      });
+      setCameraForm(EMPTY_CAMERA);
+      setSuccess("Camera added to the local catalogue. It is now available on the New Upload page.");
+      await loadProjects();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) return <LoadingState message="Loading the local project catalogue…" />;
 
   return (
     <div className="content-width catalogue-page">
       <PageHeading
-        title="Project catalogue"
-        description="Register approved OpenSpace project and floor IDs in the local SQLite database."
+        title="Project and camera catalogue"
+        description="Register approved OpenSpace projects, floors and physical cameras in the shared local SQLite database."
       />
 
       <div className="catalogue-notice">
         <span aria-hidden="true">i</span>
         <div>
           <strong>Local administration only</strong>
-          <p>Copy site and sheet IDs from the authorised OpenSpace web app. This page does not call unsupported OpenSpace listing endpoints.</p>
+          <p>Copy approved IDs from the authorised OpenSpace web app or camera record. This page does not call unsupported OpenSpace listing endpoints.</p>
         </div>
       </div>
 
@@ -134,6 +164,9 @@ export function ProjectCataloguePage() {
         </button>
         <button type="button" role="tab" aria-selected={activeForm === "sheet"} className={activeForm === "sheet" ? "active" : ""} onClick={() => switchForm("sheet")} disabled={projects.length === 0}>
           <span aria-hidden="true">▤</span><strong>Add floor</strong><small>Use an existing local project</small>
+        </button>
+        <button type="button" role="tab" aria-selected={activeForm === "camera"} className={activeForm === "camera" ? "active" : ""} onClick={() => switchForm("camera")}>
+          <span aria-hidden="true">360°</span><strong>Add camera</strong><small>Make a physical camera selectable</small>
         </button>
       </div>
 
@@ -177,7 +210,7 @@ export function ProjectCataloguePage() {
 
           <div className="catalogue-submit"><button className="btn btn-primary btn-lg" disabled={submitting}>{submitting ? "Saving…" : "Add project to catalogue"}</button></div>
         </form>
-      ) : (
+      ) : activeForm === "sheet" ? (
         <form className="section-card catalogue-form" onSubmit={addSheet}>
           <div className="catalogue-form-heading"><div><span>01</span><h2>Select project</h2></div><p>The new floor will appear under this project.</p></div>
           <div className="form-grid">
@@ -204,6 +237,22 @@ export function ProjectCataloguePage() {
           </div>
           <div className="catalogue-submit"><button className="btn btn-primary btn-lg" disabled={submitting || !sheetForm.siteId}>{submitting ? "Saving…" : "Add floor to project"}</button></div>
         </form>
+      ) : (
+        <form className="section-card catalogue-form" onSubmit={addCamera}>
+          <div className="catalogue-form-heading"><div><span>01</span><h2>Camera details</h2></div><p>Use the exact identity required by OpenSpace.</p></div>
+          <div className="form-grid mb-0">
+            <div>
+              <label className="form-label" htmlFor="cameraDisplayName">Camera display name</label>
+              <input className="form-control" id="cameraDisplayName" name="displayName" value={cameraForm.displayName} onChange={updateCamera} placeholder="Insta360 X5 – Lab camera" required />
+            </div>
+            <div>
+              <label className="form-label" htmlFor="cameraDeviceId">OpenSpace camera device ID</label>
+              <input className="form-control code-input" id="cameraDeviceId" name="deviceId" value={cameraForm.deviceId} onChange={updateCamera} placeholder="Insta360 X5:sn:SERIAL_NUMBER" autoComplete="off" required />
+              <small className="form-text">Required format: CameraType:sn:SerialNumber</small>
+            </div>
+          </div>
+          <div className="catalogue-submit"><button className="btn btn-primary btn-lg" disabled={submitting}>{submitting ? "Saving…" : "Add camera to catalogue"}</button></div>
+        </form>
       )}
 
       <section className="catalogue-overview" aria-label="Current local catalogue">
@@ -217,6 +266,18 @@ export function ProjectCataloguePage() {
                   <span key={sheet.sheetId}><strong>{sheet.name}</strong><code>{sheet.sheetId}</code></span>
                 ))}
               </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="catalogue-overview" aria-label="Current camera catalogue">
+        <div className="section-card-heading"><div><h2>Current cameras</h2><p>{cameras.length} active camera{cameras.length === 1 ? "" : "s"} available for upload.</p></div><button className="btn btn-outline-secondary" onClick={loadProjects}>Refresh</button></div>
+        <div className="catalogue-cameras">
+          {cameras.length === 0 ? <span className="empty-sheet">No cameras configured</span> : cameras.map((camera) => (
+            <article className="catalogue-camera" key={camera.deviceId}>
+              <div><h3>{camera.displayName}</h3><span>{camera.model}</span></div>
+              <code>{camera.deviceId}</code>
             </article>
           ))}
         </div>
