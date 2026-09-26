@@ -59,14 +59,113 @@ button, input, select { font: inherit; }
 /* ================================================================
    Dashboard page: four status metric cards
    ================================================================ */
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-.metric-card { min-height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.2rem; border: 3px solid; border-radius: 2.4rem; text-align: center; }
-.metric-card strong { font-size: 2rem; line-height: 1; }
-.metric-card span { margin-top: .65rem; font-weight: 750; text-transform: uppercase; letter-spacing: .035em; font-size: .83rem; }
-.metric-blue { border-color: #3da5f4; background: #dceefe; }
-.metric-amber { border-color: #f2b936; background: #fff0c9; }
-.metric-green { border-color: #55c97a; background: #dcf5e4; }
-.metric-red { border-color: #e46d6d; background: #fde5e5; }
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1.35rem 1.4rem;
+  border: 1px solid #d8e2ed;
+  border-left: 5px solid;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(28 67 107 / 8%);
+  text-align: left;
+}
+
+.metric-card strong {
+  color: #172033;
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.metric-card span {
+  margin-top: .55rem;
+  color: #64748b;
+  font-size: .82rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.metric-blue {
+  border-left-color: #3da5f4;
+}
+
+.metric-amber {
+  border-left-color: #f2b936;
+}
+
+.metric-green {
+  border-left-color: #55c97a;
+}
+
+.metric-red {
+  border-left-color: #e46d6d;
+}
+.metric-card-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.metric-icon {
+  display: grid;
+  place-items: center;
+
+  width: 48px;
+  height: 48px;
+
+  flex: 0 0 48px;
+
+  border-radius: .85rem;
+
+  font-size: 1.35rem;
+  font-weight: 800;
+}
+
+.metric-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.metric-text strong {
+  display: block;
+}
+
+.metric-text span {
+  display: block;
+}
+
+.metric-blue .metric-icon {
+  color: #2477c7;
+  background: #e7f2fd;
+}
+
+.metric-amber .metric-icon {
+  color: #a86f00;
+  background: #fff1c9;
+}
+
+.metric-green .metric-icon {
+  color: #23834a;
+  background: #ddf5e7;
+}
+
+.metric-red .metric-icon {
+  color: #b54343;
+  background: #fde4e4;
+}
 
 /* ================================================================
    Dashboard and Upload History: tables, actions and status badges
@@ -173,7 +272,7 @@ button, input, select { font: inherit; }
   .page-heading .btn { width: 100%; }
   .metric-grid, .form-grid, .filter-card, .upload-summary { grid-template-columns: 1fr; }
   .grid-span-2, .filter-card > :first-child { grid-column: auto; }
-  .metric-card { min-height: 104px; border-radius: 1.5rem; }
+  .metric-card { min-height: 104px; border-radius: 1rem; }
   .pagination-row, .progress-meta { align-items: stretch; flex-direction: column; }
   .pagination-row .btn-group { width: 100%; }
   .pagination-row .btn { flex: 1; }
