@@ -93,4 +93,34 @@ describe("project catalogue routes", () => {
     expect(projectResponse.status).toBe(409);
     expect(sheetResponse.status).toBe(409);
   });
+
+  it("corrects project and floor IDs before they are used by uploads", async () => {
+    const baseUrl = await startServer();
+    const projectResponse = await fetch(`${baseUrl}/api/projects/0kv8zyqITsaTLTk3DDFaUQ`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteId: "robotics-corrected", name: "PSB Robotics Lab" }),
+    });
+    expect(projectResponse.status).toBe(200);
+    expect(await projectResponse.json()).toEqual(expect.objectContaining({
+      siteId: "robotics-corrected",
+      name: "PSB Robotics Lab",
+    }));
+    const createdSheet = await fetch(`${baseUrl}/api/projects/robotics-corrected/sheets`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: "robotics-lab-sheet", name: "Robotics Lab" }),
+    });
+    expect(createdSheet.status).toBe(201);
+    const correctedSheet = await fetch(`${baseUrl}/api/projects/robotics-corrected/sheets/robotics-lab-sheet`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sheetId: "robotics-floor-corrected", name: "Robotics Level 2" }),
+    });
+    expect(correctedSheet.status).toBe(200);
+    expect(await correctedSheet.json()).toEqual(expect.objectContaining({
+      sheetId: "robotics-floor-corrected",
+      name: "Robotics Level 2",
+    }));
+  });
 });

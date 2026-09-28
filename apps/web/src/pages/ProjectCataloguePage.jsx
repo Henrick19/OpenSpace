@@ -15,6 +15,7 @@ const EMPTY_PROJECT = {
 
 const EMPTY_SHEET = { siteId: "", sheetId: "", name: "" };
 const EMPTY_CAMERA = { deviceId: "", displayName: "" };
+const EMPTY_EDIT = { type: "", currentId: "", parentId: "", id: "", name: "" };
 
 /** Local administration page for approved OpenSpace project and floor IDs. */
 export function ProjectCataloguePage() {
@@ -28,6 +29,7 @@ export function ProjectCataloguePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [editForm, setEditForm] = useState(EMPTY_EDIT);
 
   const loadProjects = useCallback(async () => {
     try {
@@ -73,6 +75,59 @@ export function ProjectCataloguePage() {
     setActiveForm(nextForm);
     setError("");
     setSuccess("");
+  }
+
+  function openProjectEditor(project) {
+    setEditForm({ type: "project", currentId: project.siteId, parentId: "", id: project.siteId, name: project.name });
+    setError("");
+    setSuccess("");
+  }
+
+  function openSheetEditor(project, sheet) {
+    setEditForm({ type: "sheet", currentId: sheet.sheetId, parentId: project.siteId, id: sheet.sheetId, name: sheet.name });
+    setError("");
+    setSuccess("");
+  }
+
+  function openCameraEditor(camera) {
+    setEditForm({ type: "camera", currentId: camera.deviceId, parentId: "", id: camera.deviceId, name: camera.displayName });
+    setError("");
+    setSuccess("");
+  }
+
+  function updateEdit(event) {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+    try {
+      if (editForm.type === "project") {
+        await projectApi.update(editForm.currentId, { siteId: editForm.id.trim(), name: editForm.name.trim() });
+      } else if (editForm.type === "sheet") {
+        await projectApi.updateSheet(editForm.parentId, editForm.currentId, {
+          sheetId: editForm.id.trim(),
+          name: editForm.name.trim(),
+        });
+      } else {
+        await cameraApi.update(editForm.currentId, {
+          deviceId: editForm.id.trim(),
+          displayName: editForm.name.trim(),
+        });
+      }
+      const label = editForm.type === "sheet" ? "Floor" : editForm.type === "camera" ? "Camera" : "Project";
+      setEditForm(EMPTY_EDIT);
+      setSuccess(`${label} details updated successfully.`);
+      await loadProjects();
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function createProject(event) {
@@ -149,7 +204,7 @@ export function ProjectCataloguePage() {
         title="Project and camera catalogue"
         description="Register approved OpenSpace projects, floors and physical cameras in the shared local SQLite database."
       />
-
+      {/*
       <div className="catalogue-notice">
         <span aria-hidden="true">i</span>
         <div>
@@ -158,6 +213,14 @@ export function ProjectCataloguePage() {
         </div>
       </div>
 
+      <div className="catalogue-notice catalogue-edit-notice">
+        <span aria-hidden="true">✎</span>
+        <div>
+          <strong>Incorrect catalogue entry?</strong>
+          <p>Use Edit beside a project, floor or camera below. Names can always be corrected; an OpenSpace ID can only be changed before upload history uses it.</p>
+        </div>
+      </div>
+      */}
       <div className="catalogue-choice" role="tablist" aria-label="Catalogue action">
         <button type="button" role="tab" aria-selected={activeForm === "project"} className={activeForm === "project" ? "active" : ""} onClick={() => switchForm("project")}>
           <span aria-hidden="true">+</span><strong>New project</strong><small>Optionally add its first floor</small>
@@ -172,6 +235,40 @@ export function ProjectCataloguePage() {
 
       {error && <ErrorState message={error} onRetry={loadProjects} />}
       {success && <div className="alert alert-success" role="status">{success}</div>}
+
+      {editForm.type && (
+        <div className="catalogue-edit-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget && !submitting) setEditForm(EMPTY_EDIT);
+        }}>
+          <form className="section-card catalogue-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="catalogueEditTitle" onSubmit={saveEdit}>
+            <div className="catalogue-edit-header">
+              <div>
+                <span className="catalogue-edit-kicker">Edit {editForm.type}</span>
+                <h2 id="catalogueEditTitle">Correct catalogue details</h2>
+              </div>
+              <button type="button" className="catalogue-close" aria-label="Close editor" disabled={submitting} onClick={() => setEditForm(EMPTY_EDIT)}>×</button>
+            </div>
+            <div className="catalogue-edit-fields">
+              {error && <div className="alert alert-danger mb-0" role="alert">{error}</div>}
+              <div>
+                <label className="form-label" htmlFor="catalogueEditName">Display name</label>
+                <input className="form-control" id="catalogueEditName" name="name" value={editForm.name} onChange={updateEdit} required maxLength="120" />
+              </div>
+              <div>
+                <label className="form-label" htmlFor="catalogueEditId">
+                  {editForm.type === "project" ? "Site ID" : editForm.type === "sheet" ? "Sheet ID" : "OpenSpace camera device ID"}
+                </label>
+                <input className="form-control code-input" id="catalogueEditId" name="id" value={editForm.id} onChange={updateEdit} required autoComplete="off" />
+                <small className="form-text">ID changes are blocked after this entry has been used by an upload.</small>
+              </div>
+            </div>
+            <div className="catalogue-edit-actions">
+              <button type="button" className="btn btn-outline-secondary" disabled={submitting} onClick={() => setEditForm(EMPTY_EDIT)}>Cancel</button>
+              <button className="btn btn-primary" disabled={submitting}>{submitting ? "Saving…" : "Save changes"}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       {activeForm === "project" ? (
         <form className="section-card catalogue-form" onSubmit={createProject}>
@@ -262,10 +359,16 @@ export function ProjectCataloguePage() {
             <EmptyState title="No projects configured" description="Add an approved OpenSpace project to make it available for uploads." />
           ) : projects.map((project) => (
             <article className="catalogue-project" key={project.siteId}>
-              <div><h3>{project.name}</h3><code>{project.siteId}</code></div>
+              <div>
+                <div className="catalogue-item-heading"><h3>{project.name}</h3><button type="button" className="catalogue-edit-button" onClick={() => openProjectEditor(project)}>Edit</button></div>
+                <code>{project.siteId}</code>
+              </div>
               <div className="catalogue-sheet-list">
                 {project.sheets.length === 0 ? <span className="empty-sheet">No floors configured</span> : project.sheets.map((sheet) => (
-                  <span key={sheet.sheetId}><strong>{sheet.name}</strong><code>{sheet.sheetId}</code></span>
+                  <span key={sheet.sheetId}>
+                    <span className="catalogue-item-heading"><strong>{sheet.name}</strong><button type="button" className="catalogue-edit-button" onClick={() => openSheetEditor(project, sheet)}>Edit</button></span>
+                    <code>{sheet.sheetId}</code>
+                  </span>
                 ))}
               </div>
             </article>
@@ -279,7 +382,7 @@ export function ProjectCataloguePage() {
           {cameras.length === 0 ? <EmptyState title="No cameras configured" description="Add an approved camera to make it selectable on the New Upload page." /> : cameras.map((camera) => (
             <article className="catalogue-camera" key={camera.deviceId}>
               <div><h3>{camera.displayName}</h3><span>{camera.model}</span></div>
-              <code>{camera.deviceId}</code>
+              <div className="catalogue-camera-identity"><code>{camera.deviceId}</code><button type="button" className="catalogue-edit-button" onClick={() => openCameraEditor(camera)}>Edit</button></div>
             </article>
           ))}
         </div>

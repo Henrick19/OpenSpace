@@ -102,6 +102,25 @@ export const OPENAPI_DOCUMENT = {
         },
       },
     },
+    "/api/cameras/{deviceId}": {
+      patch: {
+        tags: ["Cameras"],
+        summary: "Correct a camera catalogue entry",
+        description: "Updates the display name and, when no upload history uses it, the OpenSpace device ID.",
+        operationId: "updateCamera",
+        parameters: [{ name: "deviceId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateCamera" } } },
+        },
+        responses: {
+          200: { description: "Camera updated.", content: { "application/json": { schema: { $ref: "#/components/schemas/Camera" } } } },
+          400: errorResponse,
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
+    },
     "/api/projects": {
       get: {
         tags: ["Projects"],
@@ -158,6 +177,47 @@ export const OPENAPI_DOCUMENT = {
         },
         responses: {
           201: { description: "Floor created.", content: { "application/json": { schema: { $ref: "#/components/schemas/Sheet" } } } },
+          400: errorResponse,
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
+    },
+    "/api/projects/{siteId}": {
+      patch: {
+        tags: ["Projects"],
+        summary: "Correct a project catalogue entry",
+        description: "Updates the project name and, when no upload history uses it, the OpenSpace site ID.",
+        operationId: "updateProject",
+        parameters: [{ name: "siteId", in: "path", required: true, schema: { type: "string" } }],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateProject" } } },
+        },
+        responses: {
+          200: { description: "Project updated.", content: { "application/json": { schema: { $ref: "#/components/schemas/Project" } } } },
+          400: errorResponse,
+          404: errorResponse,
+          409: errorResponse,
+        },
+      },
+    },
+    "/api/projects/{siteId}/sheets/{sheetId}": {
+      patch: {
+        tags: ["Projects"],
+        summary: "Correct a floor catalogue entry",
+        description: "Updates the floor name and, when no upload history uses it, the OpenSpace sheet ID.",
+        operationId: "updateProjectSheet",
+        parameters: [
+          { name: "siteId", in: "path", required: true, schema: { type: "string" } },
+          { name: "sheetId", in: "path", required: true, schema: { type: "string" } },
+        ],
+        requestBody: {
+          required: true,
+          content: { "application/json": { schema: { $ref: "#/components/schemas/UpdateSheet" } } },
+        },
+        responses: {
+          200: { description: "Floor updated.", content: { "application/json": { schema: { $ref: "#/components/schemas/Sheet" } } } },
           400: errorResponse,
           404: errorResponse,
           409: errorResponse,
@@ -397,6 +457,14 @@ export const OPENAPI_DOCUMENT = {
           displayName: { type: "string", maxLength: 120 },
         },
       },
+      UpdateCamera: {
+        type: "object",
+        required: ["deviceId", "displayName"],
+        properties: {
+          deviceId: { type: "string", pattern: "^.+:sn:.+$" },
+          displayName: { type: "string", maxLength: 120 },
+        },
+      },
       Sheet: {
         type: "object",
         required: ["sheetId", "siteId", "name", "defaultStartPosition"],
@@ -439,6 +507,22 @@ export const OPENAPI_DOCUMENT = {
           siteId: { type: "string", description: "Site ID copied from the authorised OpenSpace web application." },
           name: { type: "string", maxLength: 120 },
           firstSheet: { allOf: [{ $ref: "#/components/schemas/CreateSheet" }], nullable: true },
+        },
+      },
+      UpdateProject: {
+        type: "object",
+        required: ["siteId", "name"],
+        properties: {
+          siteId: { type: "string" },
+          name: { type: "string", maxLength: 120 },
+        },
+      },
+      UpdateSheet: {
+        type: "object",
+        required: ["sheetId", "name"],
+        properties: {
+          sheetId: { type: "string" },
+          name: { type: "string", maxLength: 120 },
         },
       },
       Upload: {

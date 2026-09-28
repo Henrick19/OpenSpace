@@ -6,11 +6,14 @@ describe("PSB backend OpenAPI document", () => {
   it("documents every public MVP backend path", () => {
     expect(Object.keys(OPENAPI_DOCUMENT.paths).sort()).toEqual([
       "/api/cameras",
+      "/api/cameras/{deviceId}",
       "/api/config",
       "/api/dashboard/summary",
       "/api/health",
       "/api/projects",
+      "/api/projects/{siteId}",
       "/api/projects/{siteId}/sheets",
+      "/api/projects/{siteId}/sheets/{sheetId}",
       "/api/uploads",
       "/api/uploads/recent",
       "/api/uploads/statuses/values",

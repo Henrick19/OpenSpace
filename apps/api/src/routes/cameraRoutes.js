@@ -25,5 +25,18 @@ export function createCameraRouter(cameraRepository) {
     return response.status(201).json(cameraRepository.create(parsed.data));
   });
 
+  router.patch("/:deviceId", (request, response) => {
+    const parsed = cameraSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return response.status(400).json({ message: "Camera details are invalid.", issues: parsed.error.issues });
+    }
+    try {
+      return response.json(cameraRepository.update(request.params.deviceId, parsed.data));
+    } catch (error) {
+      const missing = error.message === "Camera was not found.";
+      return response.status(missing ? 404 : 409).json({ message: error.message });
+    }
+  });
+
   return router;
 }

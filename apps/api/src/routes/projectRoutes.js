@@ -12,6 +12,9 @@ const projectSchema = z.object({
   firstSheet: sheetSchema.nullish(),
 });
 
+const projectUpdateSchema = projectSchema.pick({ siteId: true, name: true });
+const sheetUpdateSchema = sheetSchema;
+
 /** Creates project-catalogue endpoints for frontend dropdowns. */
 export function createProjectRouter(projectRepository) {
   const router = Router();
@@ -40,6 +43,19 @@ export function createProjectRouter(projectRepository) {
     return response.status(201).json(project);
   });
 
+  router.patch("/:siteId", (request, response) => {
+    const parsed = projectUpdateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return response.status(400).json({ message: "Project details are invalid.", issues: parsed.error.issues });
+    }
+    try {
+      return response.json(projectRepository.updateProject(request.params.siteId, parsed.data));
+    } catch (error) {
+      const missing = error.message === "Project was not found.";
+      return response.status(missing ? 404 : 409).json({ message: error.message });
+    }
+  });
+
   // Add one approved OpenSpace floor/sheet ID to an existing local project.
   router.post("/:siteId/sheets", (request, response) => {
     const project = projectRepository.findBySiteId(request.params.siteId);
@@ -57,6 +73,23 @@ export function createProjectRouter(projectRepository) {
       defaultStartPosition: [0, 0, 1.5],
     });
     return response.status(201).json(sheet);
+  });
+
+  router.patch("/:siteId/sheets/:sheetId", (request, response) => {
+    const parsed = sheetUpdateSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return response.status(400).json({ message: "Floor details are invalid.", issues: parsed.error.issues });
+    }
+    try {
+      return response.json(projectRepository.updateSheet(
+        request.params.siteId,
+        request.params.sheetId,
+        parsed.data,
+      ));
+    } catch (error) {
+      const missing = error.message === "Floor was not found in this project.";
+      return response.status(missing ? 404 : 409).json({ message: error.message });
+    }
   });
 
   return router;

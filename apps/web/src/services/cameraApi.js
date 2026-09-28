@@ -12,4 +12,10 @@ export const cameraApi = {
       body: JSON.stringify(camera),
     });
   },
+  update(currentDeviceId, camera) {
+    return apiRequest(`/cameras/${encodeURIComponent(currentDeviceId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(camera),
+    });
+  },
 };

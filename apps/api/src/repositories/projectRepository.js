@@ -53,6 +53,14 @@ export function createProjectRepository(database) {
     return mapSheet(database.prepare("SELECT * FROM sheets WHERE sheet_id = ?").get(sheetId));
   }
 
+  function projectIdHasUploadHistory(siteId) {
+    return database.prepare("SELECT 1 FROM uploads WHERE site_id = ? LIMIT 1").get(siteId) !== undefined;
+  }
+
+  function sheetIdHasUploadHistory(sheetId) {
+    return database.prepare("SELECT 1 FROM uploads WHERE sheet_id = ? LIMIT 1").get(sheetId) !== undefined;
+  }
+
   function upsertProject({ siteId, name }) {
     database.prepare(`
       INSERT INTO projects (site_id, name, status)
@@ -105,6 +113,46 @@ export function createProjectRepository(database) {
     return findBySiteId(project.siteId);
   });
 
+  // External OpenSpace IDs may be corrected only before upload history uses them.
+  // Display names remain editable because uploads keep their own historical snapshot.
+  const updateProject = database.transaction((currentSiteId, { siteId, name }) => {
+    const current = findBySiteId(currentSiteId);
+    if (!current) throw new Error("Project was not found.");
+    if (siteId !== currentSiteId) {
+      if (findBySiteId(siteId)) throw new Error("A project with this site ID already exists.");
+      if (projectIdHasUploadHistory(currentSiteId)) {
+        throw new Error("The site ID cannot be changed because upload history already uses it. You can still edit the display name.");
+      }
+      database.prepare("INSERT INTO projects (site_id, name, status) VALUES (?, ?, ?)")
+        .run(siteId, name, current.status);
+      database.prepare("UPDATE sheets SET site_id = ? WHERE site_id = ?").run(siteId, currentSiteId);
+      database.prepare("DELETE FROM projects WHERE site_id = ?").run(currentSiteId);
+      return findBySiteId(siteId);
+    }
+    database.prepare("UPDATE projects SET name = ? WHERE site_id = ?").run(name, currentSiteId);
+    return findBySiteId(currentSiteId);
+  });
+
+  const updateSheet = database.transaction((siteId, currentSheetId, { sheetId, name }) => {
+    const current = findSheet(siteId, currentSheetId);
+    if (!current) throw new Error("Floor was not found in this project.");
+    if (sheetId !== currentSheetId) {
+      if (findSheetById(sheetId)) throw new Error("A floor with this sheet ID already exists.");
+      if (sheetIdHasUploadHistory(currentSheetId)) {
+        throw new Error("The sheet ID cannot be changed because upload history already uses it. You can still edit the display name.");
+      }
+      database.prepare(`
+        INSERT INTO sheets (
+          sheet_id, site_id, name, default_start_x, default_start_y, default_start_z
+        ) VALUES (?, ?, ?, ?, ?, ?)
+      `).run(sheetId, siteId, name, ...current.defaultStartPosition);
+      database.prepare("DELETE FROM sheets WHERE sheet_id = ?").run(currentSheetId);
+      return findSheet(siteId, sheetId);
+    }
+    database.prepare("UPDATE sheets SET name = ? WHERE sheet_id = ?").run(name, currentSheetId);
+    return findSheet(siteId, currentSheetId);
+  });
+
   return {
     createProjectWithOptionalSheet,
     findBySiteId,
@@ -112,6 +160,8 @@ export function createProjectRepository(database) {
     findSheetById,
     list,
     setProjectStatus,
+    updateProject,
+    updateSheet,
     upsertProject,
     upsertSheet,
   };

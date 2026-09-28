@@ -41,6 +41,33 @@ export function createCameraRepository(database) {
     return findByDeviceId(deviceId);
   }
 
+  function deviceIdHasUploadHistory(deviceId) {
+    return database.prepare("SELECT 1 FROM uploads WHERE device_id = ? LIMIT 1").get(deviceId) !== undefined;
+  }
+
+  const update = database.transaction((currentDeviceId, { deviceId, displayName }) => {
+    const current = findByDeviceId(currentDeviceId);
+    if (!current) throw new Error("Camera was not found.");
+    const identity = parseDeviceId(deviceId);
+    if (!identity) throw new Error("Camera device ID must use CameraType:sn:SerialNumber format.");
+    if (deviceId !== currentDeviceId) {
+      if (findByDeviceId(deviceId)) throw new Error("A camera with this device ID already exists.");
+      if (deviceIdHasUploadHistory(currentDeviceId)) {
+        throw new Error("The camera ID cannot be changed because upload history already uses it. You can still edit the display name.");
+      }
+      database.prepare(`
+        INSERT INTO cameras (device_id, display_name, model, serial_number, status)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(deviceId, displayName, identity.model, identity.serialNumber, current.status);
+      database.prepare("DELETE FROM cameras WHERE device_id = ?").run(currentDeviceId);
+      return findByDeviceId(deviceId);
+    }
+    database.prepare(`
+      UPDATE cameras SET display_name = ?, model = ?, serial_number = ? WHERE device_id = ?
+    `).run(displayName, identity.model, identity.serialNumber, currentDeviceId);
+    return findByDeviceId(currentDeviceId);
+  });
+
   function ensureDefault(deviceId) {
     const identity = parseDeviceId(deviceId);
     if (!identity || findByDeviceId(deviceId)) return;
@@ -51,7 +78,7 @@ export function createCameraRepository(database) {
     });
   }
 
-  return { create, ensureDefault, findByDeviceId, list };
+  return { create, ensureDefault, findByDeviceId, list, update };
 }
 
 export { parseDeviceId };

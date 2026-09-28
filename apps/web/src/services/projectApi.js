@@ -12,9 +12,21 @@ export const projectApi = {
       body: JSON.stringify(project),
     });
   },
+  update(currentSiteId, project) {
+    return apiRequest(`/projects/${encodeURIComponent(currentSiteId)}`, {
+      method: "PATCH",
+      body: JSON.stringify(project),
+    });
+  },
   addSheet(siteId, sheet) {
     return apiRequest(`/projects/${encodeURIComponent(siteId)}/sheets`, {
       method: "POST",
+      body: JSON.stringify(sheet),
+    });
+  },
+  updateSheet(siteId, currentSheetId, sheet) {
+    return apiRequest(`/projects/${encodeURIComponent(siteId)}/sheets/${encodeURIComponent(currentSheetId)}`, {
+      method: "PATCH",
       body: JSON.stringify(sheet),
     });
   },

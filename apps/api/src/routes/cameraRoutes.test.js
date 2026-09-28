@@ -77,4 +77,23 @@ describe("camera catalogue routes", () => {
     expect(await first.json()).toEqual(expect.objectContaining(camera));
     expect(duplicate.status).toBe(409);
   });
+
+  it("corrects a camera display name and device ID before it is used", async () => {
+    const baseUrl = await startServer();
+    const response = await fetch(`${baseUrl}/api/cameras/${encodeURIComponent("Insta360 X5:sn:DEFAULT_TEST")}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        deviceId: "Insta360 X5:sn:CORRECTED_TEST",
+        displayName: "Corrected lab camera",
+      }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual(expect.objectContaining({
+      deviceId: "Insta360 X5:sn:CORRECTED_TEST",
+      displayName: "Corrected lab camera",
+      serialNumber: "CORRECTED_TEST",
+    }));
+  });
 });
