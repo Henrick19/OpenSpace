@@ -163,6 +163,20 @@ export function DashboardPage() {
   }
 
 
+  function openUploadDetails(upload) {
+    setSelectedUpload(upload);
+  }
+
+
+  function handleUploadRowKeyDown(event, upload) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      openUploadDetails(upload);
+    }
+  }
+
+
   if (apiState.loading) {
     return <LoadingState message="Loading dashboard..." />;
   }
@@ -296,18 +310,29 @@ export function DashboardPage() {
 
               {summary.recentUploads.map((upload) => (
 
-                <tr key={upload.id}>
+                <tr
+                  key={upload.id}
+                  className={`dashboard-upload-row dashboard-upload-row-${upload.status}`}
+                  tabIndex="0"
+                  role="button"
+                  aria-label={`Open details for ${upload.captureName || upload.fileName}`}
+                  onClick={() => openUploadDetails(upload)}
+                  onKeyDown={(event) => handleUploadRowKeyDown(event, upload)}
+                >
 
-                  <td>
-                    {new Date(upload.capturedAt).toLocaleString()}
+                  <td className="dashboard-upload-date">
+                    <strong>{new Date(upload.capturedAt).toLocaleDateString()}</strong>
+                    <small>{new Date(upload.capturedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
                   </td>
 
-                  <td>
-                    {upload.projectName} - {upload.floorName}
+                  <td className="dashboard-upload-location">
+                    <strong>{upload.projectName}</strong>
+                    <small>{upload.floorName}</small>
                   </td>
 
-                  <td>
-                    {upload.fileName}
+                  <td className="dashboard-upload-file">
+                    <strong>{upload.fileName}</strong>
+                    <small>{upload.captureName}</small>
                   </td>
 
                   <td>
@@ -323,9 +348,16 @@ export function DashboardPage() {
                     <button
                       type="button"
                       className={`btn btn-sm dashboard-action dashboard-action-${upload.status}`}
-                      onClick={() => setSelectedUpload(upload)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openUploadDetails(upload);
+                      }}
                     >
-                      {uploadActionLabel(upload.status)}
+                      <span>{uploadActionLabel(upload.status)}</span>
+                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path d="M4 10h11" />
+                        <path d="m11 6 4 4-4 4" />
+                      </svg>
                     </button>
 
                   </td>
