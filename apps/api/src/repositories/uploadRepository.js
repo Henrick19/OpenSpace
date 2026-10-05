@@ -64,15 +64,34 @@ export function createUploadRepository(database) {
     database.prepare(`
       INSERT INTO uploads (
         id, site_id, project_name, sheet_id, floor_name, capture_name,
-        device_id, device_filename, local_file_path, file_size, captured_at,
+        device_id, device_filename, content_sha256, local_file_path, file_size, captured_at,
         start_micro, start_x, start_y, start_z, status, created_at, updated_at
       ) VALUES (
         @id, @siteId, @projectName, @sheetId, @floorName, @captureName,
-        @deviceId, @fileName, @localFilePath, @fileSize, @capturedAt,
+        @deviceId, @fileName, @contentSha256, @localFilePath, @fileSize, @capturedAt,
         @startMicro, @startX, @startY, @startZ, 'staged', @now, @now
       )
-    `).run({ id, ...input, now });
+    `).run({ id, ...input, contentSha256: input.contentSha256 ?? null, now });
     return findById(id);
+  }
+
+  function findDuplicate({ contentSha256, deviceId, fileName, fileSize }) {
+    const row = database.prepare(`
+      SELECT * FROM uploads
+      WHERE content_sha256 = @contentSha256
+         OR (
+           content_sha256 IS NULL
+           AND device_id = @deviceId
+           AND device_filename = @fileName
+           AND file_size = @fileSize
+         )
+      ORDER BY
+        CASE WHEN content_sha256 = @contentSha256 THEN 0 ELSE 1 END,
+        CASE status WHEN 'completed' THEN 0 WHEN 'processing' THEN 1 ELSE 2 END,
+        created_at ASC
+      LIMIT 1
+    `).get({ contentSha256, deviceId, fileName, fileSize });
+    return mapUpload(row);
   }
 
   function list(filters = {}) {
@@ -258,6 +277,7 @@ export function createUploadRepository(database) {
   return {
     create,
     deleteById,
+    findDuplicate,
     findById,
     getDashboardSummary,
     getRecent,

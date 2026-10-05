@@ -24,6 +24,10 @@ export function migrateDatabase(database) {
   if (!uploadColumns.has("pending_seen")) {
     database.exec("ALTER TABLE uploads ADD COLUMN pending_seen INTEGER NOT NULL DEFAULT 0");
   }
+  if (!uploadColumns.has("content_sha256")) {
+    database.exec("ALTER TABLE uploads ADD COLUMN content_sha256 TEXT");
+  }
+  database.exec("CREATE INDEX IF NOT EXISTS idx_uploads_content_sha256 ON uploads(content_sha256)");
 
   if (hasExactColumns(database, "projects", PROJECT_COLUMNS)
       && hasExactColumns(database, "sheets", SHEET_COLUMNS)) return;

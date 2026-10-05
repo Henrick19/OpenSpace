@@ -62,6 +62,8 @@ Do not call OpenSpace directly from a React page and never place OpenSpace crede
 
 For the upload-only MVP, use `dashboardApi.getSummary()` for the dashboard and the reusable methods in `uploadApi` for creating, listing, reading and retrying upload records. SQLite is accessed only by the Node.js repository layer.
 
+Before creating an OpenSpace session, the backend calculates a SHA-256 fingerprint of the staged INSV file. Re-uploading the same binary is rejected with HTTP `409` and the ID of the existing local upload, even when its capture name, selected floor, filename or entered date/time has changed. Legacy records created before fingerprints were introduced are matched using their camera, original filename and exact file size.
+
 ## Main folders
 
 ```text

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
 import { Router } from "express";
 import multer from "multer";
@@ -27,6 +27,16 @@ function cleanFileName(name) {
   return Array.from(path.basename(name))
     .filter((character) => character.charCodeAt(0) >= 32)
     .join("");
+}
+
+function calculateFileSha256(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    const stream = fs.createReadStream(filePath);
+    stream.on("error", reject);
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
 }
 
 /**
@@ -119,7 +129,7 @@ export function createUploadRouter({
   });
 
   router.post("/", (request, response, next) => {
-    receiveUpload(request, response, (uploadError) => {
+    receiveUpload(request, response, async (uploadError) => {
       if (uploadError) return next(uploadError);
       try {
         if (!request.file) {
@@ -142,6 +152,22 @@ export function createUploadRouter({
           removeUploadedFile(request.file);
           return response.status(400).json({ message: "Select an active camera from the local catalogue." });
         }
+        const fileName = cleanFileName(request.file.originalname);
+        const contentSha256 = await calculateFileSha256(request.file.path);
+        const duplicate = uploadRepository.findDuplicate({
+          contentSha256,
+          deviceId: camera.deviceId,
+          fileName,
+          fileSize: request.file.size,
+        });
+        if (duplicate) {
+          removeUploadedFile(request.file);
+          return response.status(409).json({
+            message: `This INSV file was already uploaded as ${duplicate.id} (${duplicate.status}). Open the existing upload instead of submitting it again.`,
+            duplicateUploadId: duplicate.id,
+            duplicateStatus: duplicate.status,
+          });
+        }
         const capturedAt = new Date(parsed.data.capturedAt);
         // Persist metadata and the documented default start before returning 202.
         const upload = uploadRepository.create({
@@ -151,7 +177,8 @@ export function createUploadRouter({
           floorName: sheet.name,
           captureName: parsed.data.captureName,
           deviceId: camera.deviceId,
-          fileName: cleanFileName(request.file.originalname),
+          fileName,
+          contentSha256,
           localFilePath: request.file.path,
           fileSize: request.file.size,
           capturedAt: capturedAt.toISOString(),

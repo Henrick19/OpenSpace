@@ -34,6 +34,8 @@ React pages should call the existing frontend service functions instead of writi
 
 The Swagger response examples describe what each service function returns to the page.
 
+`POST /api/uploads` fingerprints the actual INSV bytes before contacting OpenSpace. If those bytes already exist in local upload history, the endpoint returns HTTP `409` with `duplicateUploadId` and `duplicateStatus`. Changing form metadata does not bypass this check. Records created before fingerprinting are checked using their camera, original filename and exact file size.
+
 ## Where the OpenAPI definition lives
 
 The source document is:

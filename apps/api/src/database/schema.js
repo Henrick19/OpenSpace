@@ -41,6 +41,7 @@ export const INITIAL_SCHEMA = `
     capture_name TEXT NOT NULL,
     device_id TEXT NOT NULL,
     device_filename TEXT NOT NULL,
+    content_sha256 TEXT,
     local_file_path TEXT,
     file_size INTEGER NOT NULL CHECK (file_size >= 0),
     captured_at TEXT NOT NULL,

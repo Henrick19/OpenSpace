@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { createHash } from "node:crypto";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -100,5 +101,81 @@ describe("DELETE /api/uploads/:id", () => {
     });
     expect(repository.findById(upload.id)).not.toBeNull();
     expect(fs.existsSync(filePath)).toBe(true);
+  });
+});
+
+describe("POST /api/uploads duplicate protection", () => {
+  it("rejects the same INSV bytes even when the filename and capture time change", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "openspace-duplicate-"));
+    cleanups.push(() => fs.promises.rm(directory, { recursive: true, force: true }));
+    const database = createDatabase(":memory:");
+    cleanups.push(() => database.close());
+    const repository = createUploadRepository(database);
+    const content = Buffer.from("same-insv-binary-content");
+    const originalPath = path.join(directory, "original.insv");
+    fs.writeFileSync(originalPath, content);
+    const original = repository.create({
+      siteId: "3veiB-IWQeueTCR09xrR6g",
+      projectName: "PSB Academy - City Campus",
+      sheetId: "ov2OjSjTT-WBP_dgeedIlw",
+      floorName: "L3 - Main Wing",
+      captureName: "Original capture",
+      deviceId: "Insta360 OneX5:sn:TEST",
+      fileName: "original.insv",
+      contentSha256: createHash("sha256").update(content).digest("hex"),
+      localFilePath: originalPath,
+      fileSize: content.length,
+      capturedAt: "2026-09-23T08:00:00.000Z",
+      startMicro: 1790150400000000,
+      startX: 0,
+      startY: 0,
+      startZ: 1.5,
+    });
+    const baseUrl = await startTestServer(database, createEnvironment(directory));
+    const form = new FormData();
+    form.append("siteId", "3veiB-IWQeueTCR09xrR6g");
+    form.append("sheetId", "ov2OjSjTT-WBP_dgeedIlw");
+    form.append("captureName", "Changed capture name");
+    form.append("deviceId", "Insta360 OneX5:sn:TEST");
+    form.append("capturedAt", "2026-10-05T02:25:00.000Z");
+    form.append("file", new Blob([content], { type: "video/insv" }), "renamed.insv");
+
+    const response = await fetch(`${baseUrl}/api/uploads`, { method: "POST", body: form });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      message: `This INSV file was already uploaded as ${original.id} (staged). Open the existing upload instead of submitting it again.`,
+      duplicateUploadId: original.id,
+      duplicateStatus: "staged",
+    });
+    expect(repository.list().total).toBe(1);
+    expect(fs.readdirSync(directory)).toEqual(["original.insv"]);
+  });
+
+  it("recognizes a legacy duplicate by device, original filename and file size", async () => {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "openspace-legacy-duplicate-"));
+    cleanups.push(() => fs.promises.rm(directory, { recursive: true, force: true }));
+    const database = createDatabase(":memory:");
+    cleanups.push(() => database.close());
+    const repository = createUploadRepository(database);
+    const content = Buffer.from("legacy-insv-content");
+    const originalPath = path.join(directory, "capture.insv");
+    fs.writeFileSync(originalPath, content);
+    const original = createUpload(repository, originalPath);
+    const baseUrl = await startTestServer(database, createEnvironment(directory));
+    const form = new FormData();
+    form.append("siteId", "3veiB-IWQeueTCR09xrR6g");
+    form.append("sheetId", "ov2OjSjTT-WBP_dgeedIlw");
+    form.append("captureName", "Changed legacy capture");
+    form.append("deviceId", "Insta360 OneX5:sn:TEST");
+    form.append("capturedAt", "2026-10-05T02:25:00.000Z");
+    form.append("file", new Blob([content], { type: "video/insv" }), "capture.insv");
+
+    const response = await fetch(`${baseUrl}/api/uploads`, { method: "POST", body: form });
+
+    expect(response.status).toBe(409);
+    const body = await response.json();
+    expect(body.duplicateUploadId).toBe(original.id);
+    expect(repository.list().total).toBe(1);
   });
 });

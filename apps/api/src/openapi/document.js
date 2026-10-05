@@ -265,7 +265,7 @@ export const OPENAPI_DOCUMENT = {
       post: {
         tags: ["Uploads"],
         summary: "Stage an INSV file and start its upload job",
-        description: "Receives one local `.insv` file. Returns immediately with HTTP 202 while background work continues.",
+        description: "Receives one local `.insv` file, fingerprints its binary content and rejects duplicates before creating an OpenSpace session. Returns immediately with HTTP 202 while background work continues.",
         operationId: "createUpload",
         requestBody: {
           required: true,
@@ -289,6 +289,7 @@ export const OPENAPI_DOCUMENT = {
         responses: {
           202: uploadResponse,
           400: errorResponse,
+          409: errorResponse,
           500: errorResponse,
         },
       },
